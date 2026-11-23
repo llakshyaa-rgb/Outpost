@@ -12,7 +12,7 @@ STATIC = ROOT / "static"
 DATA.mkdir(exist_ok=True)
 DB = DATA / "outpost.db"
 CONFIG = DATA / "config.json"
-MAX_BODY = 8_000_000
+MAX_BODY = 24_000_000
 MAX_FILE = 5_000_000
 TEXT_EXT = {".txt",".md",".markdown",".json",".csv",".py",".js",".ts",".tsx",".jsx",".html",".css",".yml",".yaml",".toml",".ini",".cfg",".log",".xml",".sh",".sql"}
 DOC_EXT = {".pdf",".docx",".xlsx",".xls"}
@@ -188,7 +188,7 @@ def knowledge_catalog():
     items=[]
     if not base.is_dir(): return items
     for p in base.rglob("*"):
-        if not p.is_file() or p.is_symlink() or p.suffix.lower() not in {".md",".txt",".rst",".yaml",".yml",".json"}: continue
+        if not p.is_file() or p.is_symlink() or p.suffix.lower() not in {".md",".txt",".rst",".yaml",".yml",".json",".py",".sh"}: continue
         try:
             if p.stat().st_size>2_000_000: continue
             raw=p.read_text(encoding="utf-8",errors="replace")
@@ -234,14 +234,14 @@ class Handler(BaseHTTPRequestHandler):
             bug_count=sum(1 for p in (knowledge/"bughunter").rglob("SKILL.md")) if (knowledge/"bughunter").is_dir() else 0
             security_count=sum(1 for p in (knowledge/"security").rglob("*") if p.is_file()) if (knowledge/"security").is_dir() else 0
             modules=[
-              {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"OUTPOST uses its own loopback-only file layer; AFDrive is the architecture reference.","url":"https://github.com/ashwithfrank/AFDrive"},
-              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"ready" if zim_count else "waiting","count":zim_count,"detail":"ZIM archives are discovered locally; open them with Kiwix JS/PWA.","url":"https://github.com/kiwix/kiwix-js"},
-              {"id":"pfa","name":"Personal File Archive","role":"Local archive and incremental document indexing","status":"core","detail":"Unified local file index and search are built into OUTPOST.","url":"https://github.com/kevin0309/PersonalFileArchive"},
-              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Knowledge folder is indexed locally; add licensed playbooks under knowledge/security.","url":"https://github.com/PentHertz/grimoire"},
-              {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only Termux environment and installed-command detection; no shell commands are run by the dashboard.","url":"https://github.com/termux/termux-tools"},
-              {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"OUTPOST search is local and indexes selected roots; citation-style source paths are shown.","url":"https://github.com/evanderpool/uplink"},
-              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"ready" if bug_count else "waiting","count":bug_count,"detail":"Optional local Agent Skills can be placed under knowledge/bughunter and searched offline.","url":"https://github.com/elementalsouls/Claude-BugHunter"},
-              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"OUTPOST includes safe offline file analysis; active tools are not auto-run.","url":"https://github.com/JerenzeLevi/cyberdesk"}
+              {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"OUTPOST uses its own loopback-only file layer; AFDrive is the architecture reference."},
+              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"ready" if zim_count else "waiting","count":zim_count,"detail":"ZIM archives are discovered locally; open them with Kiwix JS/PWA."},
+              {"id":"pfa","name":"Personal File Archive","role":"Local archive and incremental document indexing","status":"core","detail":"Unified local file index and search are built into OUTPOST."},
+              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Knowledge folder is indexed locally; add licensed playbooks under knowledge/security."},
+              {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only Termux environment and installed-command detection; no shell commands are run by the dashboard."},
+              {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"OUTPOST search is local and indexes selected roots; citation-style source paths are shown."},
+              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"ready" if bug_count else "waiting","count":bug_count,"detail":"Optional local Agent Skills can be placed under knowledge/bughunter and searched offline."},
+              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"OUTPOST includes safe offline file analysis; active tools are not auto-run."}
             ]
             self.send_json(modules); return
         if u.path == "/api/system":
@@ -513,28 +513,28 @@ class Handler(BaseHTTPRequestHandler):
             import base64, zipfile, io, stat
             try:
                 raw=base64.b64decode(str(data.get("archive_base64","")),validate=True)
-                if len(raw)>7_000_000: raise ValueError("Knowledge archive exceeds the 7 MB upload limit")
+                if len(raw)>15_000_000: raise ValueError("Knowledge archive exceeds the 15 MB upload limit")
                 target=(ROOT/"knowledge"/"imported").resolve()
                 target.mkdir(parents=True,exist_ok=True)
-                allowed={".md",".txt",".rst",".yaml",".yml",".json",".toml"}
+                allowed={".md",".txt",".rst",".yaml",".yml",".json",".toml",".py",".sh",".html",".css",".js"}
                 count=0; total=0; skipped=0
                 with zipfile.ZipFile(io.BytesIO(raw)) as z:
                     entries=z.infolist()
-                    if len(entries)>250: raise ValueError("Archive contains too many entries")
+                    if len(entries)>2000: raise ValueError("Archive contains too many entries")
                     for info in entries:
                         if info.is_dir(): continue
                         mode=(info.external_attr>>16)&0xFFFF
                         if stat.S_ISLNK(mode): skipped+=1; continue
                         rel=Path(info.filename)
                         if rel.is_absolute() or ".." in rel.parts or rel.suffix.lower() not in allowed: skipped+=1; continue
-                        if info.file_size>2_000_000: skipped+=1; continue
+                        if info.file_size>5_000_000: skipped+=1; continue
                         total+=info.file_size
-                        if total>25_000_000: raise ValueError("Expanded archive exceeds 25 MB")
+                        if total>100_000_000: raise ValueError("Expanded archive exceeds 100 MB")
                         dest=(target/rel).resolve()
                         if target not in dest.parents: skipped+=1; continue
                         dest.parent.mkdir(parents=True,exist_ok=True)
-                        with z.open(info) as src: content=src.read(2_000_001)
-                        if len(content)>2_000_000: skipped+=1; continue
+                        with z.open(info) as src: content=src.read(5_000_001)
+                        if len(content)>5_000_000: skipped+=1; continue
                         dest.write_bytes(content); count+=1
                 self.send_json({"ok":True,"imported":count,"skipped":skipped,"catalog":knowledge_catalog()},201); return
             except (ValueError,OSError,zipfile.BadZipFile,base64.binascii.Error) as e:
