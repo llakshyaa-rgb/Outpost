@@ -587,9 +587,19 @@ class Handler(BaseHTTPRequestHandler):
                     global WIKI_IMPORT_STATE
                     try:
                         from outpost_modules.wiki_compact import import_dump
+                        staging=DATA/"wiki"/"wiki.importing.db"
+                        final=DATA/"wiki"/"wiki.db"
+                        for sidecar in (staging,Path(str(staging)+"-wal"),Path(str(staging)+"-shm")):
+                            try: sidecar.unlink()
+                            except FileNotFoundError: pass
                         def progress(info):
                             WIKI_IMPORT_STATE.update(info)
-                        result=import_dump(str(source),str(DATA/"wiki"/"wiki.db"),progress)
+                        result=import_dump(str(source),str(staging),progress)
+                        for sidecar in (Path(str(staging)+"-wal"),Path(str(staging)+"-shm")):
+                            try: sidecar.unlink()
+                            except FileNotFoundError: pass
+                        os.replace(staging,final)
+                        result["database"]=str(final)
                         WIKI_IMPORT_STATE.update(result); WIKI_IMPORT_STATE["running"]=False
                     except Exception as exc:
                         WIKI_IMPORT_STATE.update({"running":False,"error":str(exc)[:500]})
