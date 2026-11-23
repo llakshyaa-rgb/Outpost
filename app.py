@@ -117,6 +117,7 @@ def index_files():
     builtin = ROOT / "knowledge"
     if builtin.is_dir() and builtin.resolve() not in roots: roots.append(builtin.resolve())
     count = skipped = 0
+    total_bytes = 0
     seen = set()
     for root in roots:
         for base, dirs, names in os.walk(root, followlinks=False):
@@ -132,6 +133,9 @@ def index_files():
                         skipped += 1
                         continue
                     st = resolved.stat()
+                    if count >= 5000 or total_bytes + st.st_size > 300_000_000:
+                        skipped += 1
+                        continue
                     if st.st_size > MAX_FILE:
                         skipped += 1
                         continue
@@ -145,6 +149,7 @@ def index_files():
                         (str(resolved),name,content,st.st_size,st.st_mtime,time.time()))
                     seen.add(str(resolved))
                     count += 1
+                    total_bytes += st.st_size
                 except (OSError, sqlite3.Error):
                     skipped += 1
     stale = 0
@@ -177,7 +182,13 @@ def managed_roots():
 
 def managed_path(raw, allow_root=False):
     if not isinstance(raw,str) or not raw.strip(): raise ValueError("A file path is required")
-    p=Path(raw).expanduser().resolve()
+    candidate=Path(raw).expanduser()
+    probe=candidate
+    while True:
+        if probe.is_symlink(): raise ValueError("Symlink paths are not allowed")
+        if probe.parent==probe: break
+        probe=probe.parent
+    p=candidate.resolve()
     roots=managed_roots()
     if not any((p==r if allow_root else p!=r) or r in p.parents for r in roots):
         raise ValueError("Path is outside OUTPOST's configured folders")
@@ -529,7 +540,7 @@ class Handler(BaseHTTPRequestHandler):
                         if rel.is_absolute() or ".." in rel.parts or rel.suffix.lower() not in allowed: skipped+=1; continue
                         if info.file_size>5_000_000: skipped+=1; continue
                         total+=info.file_size
-                        if total>100_000_000: raise ValueError("Expanded archive exceeds 100 MB")
+                        if total>50_000_000: raise ValueError("Expanded archive exceeds 50 MB")
                         dest=(target/rel).resolve()
                         if target not in dest.parents: skipped+=1; continue
                         dest.parent.mkdir(parents=True,exist_ok=True)
