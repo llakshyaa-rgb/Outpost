@@ -256,7 +256,7 @@ class Handler(BaseHTTPRequestHandler):
             knowledge=ROOT/"knowledge"
             zim_dirs=[DATA/"zim"]+[Path(x).expanduser() for x in load_config().get("index_roots",[])]
             zim_count=sum(1 for root in zim_dirs if root.is_dir() for base,ds,fs in os.walk(root) for f in fs if f.lower().endswith(".zim"))
-            bug_count=sum(1 for folder in (knowledge/"bughunter",knowledge/"imported") if folder.is_dir() for p in folder.rglob("SKILL.md"))
+            bug_count=sum(1 for folder in (knowledge/"bughunter",knowledge/"imported") if folder.is_dir() for p in folder.rglob("SKILL.md")) + (sum(1 for line in (knowledge/"bughunter"/"CLAUDE_BUGHUNTER_INDEX.md").read_text(encoding="utf-8",errors="replace").splitlines() if line.startswith("## ")) if (knowledge/"bughunter"/"CLAUDE_BUGHUNTER_INDEX.md").is_file() else 0)
             security_count=sum(1 for folder in (knowledge/"security",knowledge/"imported") if folder.is_dir() for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in {".md",".txt",".rst",".yaml",".yml"})
             modules=[
               {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"Local folder browsing, upload, create, rename, copy, ZIP/extract, duplicate detection and safe previews are built in."},
