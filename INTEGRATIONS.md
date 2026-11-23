@@ -5,7 +5,7 @@ OUTPOST is a native local application, not a launcher for eight online services.
 | Selected project | Upstream capability | OUTPOST offline implementation | Still not bundled |
 |---|---|---|---|
 | AFDrive — [ashwithfrank/AFDrive](https://github.com/ashwithfrank/AFDrive) | Termux-hosted personal file cloud, safe file handling, uploads/downloads, folders | Local folder browser, create folder, upload/download, rename/copy (including bounded directory trees)/move/delete, ZIP create/extract, duplicate detection, metadata and safe path checks | Login-protected LAN cloud server and multi-device access are intentionally excluded |
-| Kiwix JS — [kiwix/kiwix-js](https://github.com/kiwix/kiwix-js) | Portable JavaScript ZIM reader / PWA | Local .zim archive discovery | Reader assets and in-app ZIM rendering; no remote PWA link in offline mode |
+| Kiwix JS — [kiwix/kiwix-js](https://github.com/kiwix/kiwix-js) | Portable JavaScript ZIM reader / PWA | Local .zim discovery and optional `kiwix-serve` handoff on loopback | Kiwix JS PWA assets / WASM runtime are not bundled; no ZIM content downloads |
 | Personal File Archive — [kevin0309/PersonalFileArchive](https://github.com/kevin0309/PersonalFileArchive) | Java/Tomcat web archive with upload/download and database-backed management | Native file catalogue and archive operations | Original Java/Tomcat runtime; it is not a suitable drop-in for the stdlib Termux app |
 | Grimoire — [PentHertz/grimoire](https://github.com/PentHertz/grimoire) | Offline full-text search across cloned security knowledge bases, with provenance and document viewer | Local ZIP knowledge-pack import, local indexing/search, in-app reference reader and file catalog | Remote corpus fetching, full source catalog and original rich document viewer |
 | Termux-Tools — [termux/termux-tools](https://github.com/termux/termux-tools) | Scripts and small programs shipped by Termux | Read-only Termux/runtime/command diagnostics | Replacing Termux's own package scripts or automatically running shell commands |
@@ -41,7 +41,7 @@ The inspected repository metadata identifies Kiwix JS and Termux-Tools as GPL-3.
 - Imported scripts are reference material only and are never run.
 - The file inspector and CyberDesk-inspired tools are static/offline.
 - Network calculations do not probe hosts.
-- Online OSINT, remote recon, live target testing, remote corpus sync and online reader handoffs are left out until requested.
+- Online OSINT, remote recon, live target testing, remote corpus sync and remote reader handoffs are left out; the optional Kiwix server is local-only.
 
 ## Device validation
 
