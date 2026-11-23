@@ -247,7 +247,7 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.7.0"
+    server_version = "OUTPOST/0.8.0"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -265,7 +265,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.7.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.8.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
@@ -505,6 +505,29 @@ class Handler(BaseHTTPRequestHandler):
                     FROM bookmarks b LEFT JOIN collections c ON c.id=b.collection_id
                     ORDER BY b.created DESC LIMIT 300""")]
             self.send_json(rows); return
+        if u.path == "/api/uplink/status":
+            from outpost_modules.systems import ensure_uplink
+            with connect() as c:
+                ensure_uplink(c)
+                docs=c.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+                chunks=c.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]
+                feedback=c.execute("SELECT COUNT(*) FROM uplink_feedback").fetchone()[0]
+            self.send_json({"documents":docs,"chunks":chunks,"feedback":feedback,"engine":"SQLite FTS5 BM25","local_only":True}); return
+        if u.path == "/api/termux/toolbox":
+            import shutil
+            catalog=[
+              {"name":"pkg","purpose":"Termux package manager","usage":"pkg list-installed","mode":"read-only reference"},
+              {"name":"dpkg-query","purpose":"Inspect installed package metadata","usage":"dpkg-query -W","mode":"read-only reference"},
+              {"name":"termux-info","purpose":"Show Termux environment and package diagnostics","usage":"termux-info","mode":"read-only reference"},
+              {"name":"termux-setup-storage","purpose":"Request Android shared-storage access","usage":"termux-setup-storage","mode":"interactive; run manually"},
+              {"name":"termux-change-repo","purpose":"Choose package mirrors","usage":"termux-change-repo","mode":"interactive; network configuration"},
+              {"name":"termux-fix-shebang","purpose":"Fix script interpreter paths","usage":"termux-fix-shebang FILE","mode":"modifies selected file; run manually"},
+              {"name":"termux-wake-lock","purpose":"Request a wake lock while a task runs","usage":"termux-wake-lock","mode":"device setting; run manually"},
+              {"name":"termux-backup","purpose":"Create a Termux home backup","usage":"termux-backup","mode":"creates archive; run manually"},
+              {"name":"termux-restore","purpose":"Restore a Termux home backup","usage":"termux-restore","mode":"modifies files; run manually"},
+              {"name":"termux-open","purpose":"Open a local file with an Android app","usage":"termux-open FILE","mode":"opens external app; run manually"}
+            ]
+            self.send_json({"tools":catalog,"available":{x["name"]:bool(shutil.which(x["name"])) for x in catalog},"execution":"disabled by design; commands are reference-only"}); return
         if u.path == "/api/search":
             from urllib.parse import parse_qs
             q = parse_qs(u.query).get("q",[""])[0].strip()
@@ -634,6 +657,16 @@ class Handler(BaseHTTPRequestHandler):
                     "note":"Local-only Kiwix server bound to 127.0.0.1; it stops when OUTPOST exits."},201); return
             except (OSError,ValueError,RuntimeError) as e:
                 self.send_json({"error":str(e)},400); return
+        if self.path == "/api/uplink/rebuild":
+            from outpost_modules.systems import rebuild_uplink
+            with LOCK, connect() as c: result=rebuild_uplink(c)
+            self.send_json({"ok":True,**result}); return
+        if self.path == "/api/uplink/search":
+            from outpost_modules.systems import search_uplink
+            query=str(data.get("query","")).strip()
+            if not query: self.send_json({"error":"Enter a search query"},400); return
+            with connect() as c: results=search_uplink(c,query,int(data.get("limit",10)))
+            self.send_json({"query":query,"results":results,"count":len(results),"source":"local indexed documents"}); return
         if self.path == "/api/security/tool":
             import hashlib, math, re, base64, binascii, io, zipfile, stat
             try:
@@ -649,6 +682,9 @@ class Handler(BaseHTTPRequestHandler):
                 if mode in {"strings","hexdump","carve","elf","pe","pcap"}:
                     from outpost_modules.cyberdesk import analyze
                     self.send_json(analyze(mode,raw,text_input)); return
+                if mode=="decode-auto":
+                    from outpost_modules.systems import decode_candidates
+                    self.send_json({"candidates":decode_candidates(text_input),"note":"Offline decoding heuristics only; decoded content is untrusted."}); return
                 if mode=="triage":
                     if not raw: raise ValueError("Provide text or select a file")
                     sample=raw[:65536]
