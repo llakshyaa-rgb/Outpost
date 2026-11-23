@@ -30,7 +30,7 @@ def ensure_uplink(conn):
     CREATE TABLE IF NOT EXISTS uplink_chunks(
       id INTEGER PRIMARY KEY, document_id INTEGER NOT NULL, path TEXT NOT NULL,
       title TEXT NOT NULL, section TEXT NOT NULL, body TEXT NOT NULL,
-      ordinal INTEGER NOT NULL, indexed REAL NOT NULL,
+      ordinal INTEGER NOT NULL, indexed REAL NOT NULL, content_sha TEXT NOT NULL DEFAULT '',
       UNIQUE(document_id,ordinal)
     );
     CREATE VIRTUAL TABLE IF NOT EXISTS uplink_fts USING fts5(title,section,body,content='uplink_chunks',content_rowid='id',tokenize='unicode61');
@@ -45,6 +45,9 @@ def ensure_uplink(conn):
       helpful INTEGER NOT NULL, note TEXT NOT NULL DEFAULT '', created REAL NOT NULL
     );
     """)
+    columns={row[1] for row in conn.execute("PRAGMA table_info(uplink_chunks)")}
+    if "content_sha" not in columns:
+        conn.execute("ALTER TABLE uplink_chunks ADD COLUMN content_sha TEXT NOT NULL DEFAULT ''")
 
 def rebuild_uplink(conn, max_docs=5000, max_chunks=100000):
     ensure_uplink(conn)
@@ -54,24 +57,27 @@ def rebuild_uplink(conn, max_docs=5000, max_chunks=100000):
     removed=0
     for did in existing-valid:
         conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,)); removed+=1
-    added=0; skipped=0
+    added=0; skipped=0; refreshed=0
     for d in docs:
         did=int(d["id"])
-        current=conn.execute("SELECT COUNT(*) FROM uplink_chunks WHERE document_id=?",(did,)).fetchone()[0]
-        if current: continue
         body=str(d["content"] or "")
-        # Preserve Markdown headings as section labels, and CSV header context.
+        digest=hashlib.sha256(body.encode("utf-8",errors="replace")).hexdigest()
+        old=conn.execute("SELECT content_sha FROM uplink_chunks WHERE document_id=? LIMIT 1",(did,)).fetchone()
+        if old and old[0]==digest: continue
+        if old:
+            conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,)); refreshed+=1
         title=str(d["name"] or Path(d["path"]).name)
         chunks=chunk_text(body)
         if not chunks: skipped+=1; continue
         for n,chunk in enumerate(chunks):
             if added>=max_chunks: skipped+=1; break
             section=f"Part {n+1}"
-            conn.execute("INSERT OR IGNORE INTO uplink_chunks(document_id,path,title,section,body,ordinal,indexed) VALUES(?,?,?,?,?,?,?)",
-                         (did,d["path"],title,section,chunk,n,time.time()))
+            conn.execute("""INSERT INTO uplink_chunks(document_id,path,title,section,body,ordinal,indexed,content_sha)
+                VALUES(?,?,?,?,?,?,?,?)""",(did,d["path"],title,section,chunk,n,time.time(),digest))
             added+=1
     conn.commit()
-    return {"documents_seen":len(docs),"chunks_added":added,"documents_removed":removed,"skipped":skipped,
+    return {"documents_seen":len(docs),"chunks_added":added,"documents_removed":removed,
+            "documents_refreshed":refreshed,"skipped":skipped,
             "chunks_total":conn.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]}
 
 def search_uplink(conn, query: str, limit: int=10):
