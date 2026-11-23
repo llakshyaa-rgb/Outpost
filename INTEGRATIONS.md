@@ -61,3 +61,8 @@ The `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` file is adapted from the ups
 - Kiwix can hand a selected local ZIM archive to an already-installed `kiwix-serve`; the child process binds to loopback and is terminated when OUTPOST exits. It is optional and never installed automatically.
 - CyberDesk's PE parser lists bounded section metadata. Classic PCAP inspection summarizes up to 100 packets and decodes Ethernet, IPv4/IPv6, TCP and UDP headers without external libraries. PCAPNG remains header-detection only.
 - Regression tests cover PCAP packet decoding and PE section parsing. Run `python -m unittest discover -s tests -v` on the device before relying on the build.
+
+
+## Kiwix content catalog (OUTPOST 0.6.0)
+
+The Offline library view offers four optional curated ZIM downloads: Simple English Wikipedia full-text/no-images (about 1.0 GiB), WikiMed full-text/no-images (about 822 MiB), English Wikipedia Top mini (about 283 MiB), and an Astronomy maxi pack (about 1.6 GiB). Sizes are estimates and should be checked at download time. The catalog is a set of direct Kiwix download links, not bundled content. The user explicitly initiates each download in their browser and manually places the file in `data/zim/`. This avoids background network activity, silent multi-gigabyte downloads, and Git repository bloat. The full English Wikipedia does not fit a 5 GB budget: Kiwix's current full English editions are much larger. See the official [Kiwix FAQ](https://get.kiwix.org/en/faq/) for mini/nopic/maxi differences.
