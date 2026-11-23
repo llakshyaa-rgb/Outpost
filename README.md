@@ -77,7 +77,7 @@ See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstr
 - **Claude-BugHunter:** a compact, searchable index of 83 skill descriptions is included in `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` with attribution. It is reference material, not a full Claude Code plugin; no upstream scripts are executed.
 - **CyberDesk:** lightweight static analysis for strings, hex, ELF/PE headers, embedded file signatures and PCAP metadata, alongside the existing hashes, entropy, IOC, JWT, ZIP and transform tools. No heavy native dependencies.
 - **Termux-Tools:** read-only Termux diagnostics, command availability and local package inventory. No automatic package installation or shell execution.
-- **Kiwix JS:** local ZIM discovery and metadata, plus optional launch of an already-installed `kiwix-serve` bound to loopback. OUTPOST does not bundle a reader runtime or download content.
+- **Kiwix JS:** full reader installer pinned to an official upstream revision; it builds the PWA and WASM decoders locally into `static/kiwix/`. ZIM archives remain optional user data.
 
 Core runtime remains loopback-only and makes no external network requests. Optional file formats requiring third-party libraries stay unavailable unless the user has installed those libraries. No ZIM/wordlist/corpus is bundled, keeping repository and runtime footprint small.
 
