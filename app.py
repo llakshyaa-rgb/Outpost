@@ -266,6 +266,36 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers(); self.wfile.write(data)
             except (OSError,ValueError) as e: self.send_json({"error":str(e)},400)
             return
+        if u.path == "/api/fs/list":
+            from urllib.parse import parse_qs
+            raw=parse_qs(u.query).get("path",[""])[0]
+            try:
+                if raw:
+                    folder=managed_path(raw,allow_root=True)
+                    if not folder.is_dir(): raise ValueError("Folder not found")
+                    roots=managed_roots()
+                else:
+                    roots=managed_roots()
+                    entries=[]
+                    for root in roots:
+                        try:
+                            st=root.stat()
+                            entries.append({"name":root.name or str(root),"path":str(root),"root":str(root),"directory":True,"size":0,"modified":st.st_mtime})
+                        except OSError: pass
+                    self.send_json({"current":"","parent":"","entries":entries}); return
+                entries=[]
+                for child in folder.iterdir():
+                    try:
+                        if child.is_symlink(): continue
+                        p=child.resolve()
+                        if not any(p==r or r in p.parents for r in roots): continue
+                        st=p.stat()
+                        entries.append({"name":p.name,"path":str(p),"root":next((str(r) for r in roots if p==r or r in p.parents),str(folder)),"directory":p.is_dir(),"size":st.st_size if p.is_file() else 0,"modified":st.st_mtime})
+                    except OSError: pass
+                entries.sort(key=lambda x:(not x["directory"],x["name"].lower()))
+                self.send_json({"current":str(folder),"parent":str(folder.parent) if any(folder!=r and r in folder.parents for r in roots) else "", "entries":entries[:1000]})
+            except (OSError,ValueError) as e: self.send_json({"error":str(e)},400)
+            return
         if u.path == "/api/files":
             roots=[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
             roots.append((ROOT/"knowledge").resolve())
