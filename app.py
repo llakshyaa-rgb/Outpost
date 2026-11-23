@@ -482,6 +482,22 @@ class Handler(BaseHTTPRequestHandler):
                             ratio=round(info.file_size/max(1,info.compress_size),1)
                             members.append({"name":name,"size":info.file_size,"compressed":info.compress_size,"ratio":ratio,"directory":info.is_dir(),"unsafe":unsafe or is_link})
                         self.send_json({"entries":len(archive.infolist()),"listed":len(members),"total_uncompressed":sum(x["size"] for x in members),"warnings":warnings[:100],"members":members,"note":"Archive inspected without extracting files."}); return
+                if mode=="hash":
+                    if not raw: raise ValueError("Enter text or select a file")
+                    self.send_json({"size":len(raw),"md5":hashlib.md5(raw).hexdigest(),"sha1":hashlib.sha1(raw).hexdigest(),"sha256":hashlib.sha256(raw).hexdigest(),"sha384":hashlib.sha384(raw).hexdigest(),"sha512":hashlib.sha512(raw).hexdigest()}); return
+                if mode=="ioc":
+                    source=raw.decode("utf-8","replace")
+                    patterns={"ipv4":r"(?<![\w.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\w.])","domain":r"(?i)(?<![@\w-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|dev|app|co|in|edu|gov|info|biz|xyz|ru|cn|uk|de|me|tv)(?![\w-])","url":r"https?://[^\s<>\"']+","email":r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}","hash":r"\b(?:[a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64}|[a-fA-F0-9]{128})\b"}
+                    found={name:sorted(set(re.findall(pattern,source)))[:500] for name,pattern in patterns.items()}
+                    self.send_json({"indicators":found,"counts":{k:len(v) for k,v in found.items()},"note":"Offline extraction only. Values are unverified indicators, not reputation verdicts."}); return
+                if mode=="jwt":
+                    token=text_input.strip()
+                    parts=token.split(".")
+                    if len(parts)!=3: raise ValueError("Enter a three-part JWT")
+                    def dec(part):
+                        return base64.urlsafe_b64decode(part+"="*((4-len(part)%4)%4)).decode("utf-8","replace")
+                    header=json.loads(dec(parts[0])); claims=json.loads(dec(parts[1]))
+                    self.send_json({"header":header,"claims":claims,"signature_present":bool(parts[2]),"warning":"Decoded locally without signature verification. Claims are untrusted until verified."}); return
                 if mode=="hashid":
                     value=text_input.strip()
                     if not value: raise ValueError("Enter a hash")
