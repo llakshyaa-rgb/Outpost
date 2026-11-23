@@ -66,6 +66,8 @@ def index_files():
     for raw in cfg.get("index_roots", []):
         p = Path(raw).expanduser().resolve()
         if p.exists() and p.is_dir(): roots.append(p)
+    builtin = ROOT / "knowledge"
+    if builtin.is_dir() and builtin.resolve() not in roots: roots.append(builtin.resolve())
     count = skipped = 0
     for root in roots:
         for base, dirs, names in os.walk(root):
@@ -112,6 +114,63 @@ class Handler(BaseHTTPRequestHandler):
                 collections=[dict(x) for x in c.execute("SELECT name,description,created FROM collections")]
                 bookmarks=[dict(x) for x in c.execute("SELECT b.title,b.url,b.note,b.created,c.name AS collection_name FROM bookmarks b LEFT JOIN collections c ON c.id=b.collection_id")]
             self.send_json({"version":1,"exported_at":time.time(),"notes":notes,"collections":collections,"bookmarks":bookmarks}); return
+        if u.path == "/api/modules":
+            knowledge=ROOT/"knowledge"
+            zim_dirs=[DATA/"zim"]+[Path(x).expanduser() for x in load_config().get("index_roots",[])]
+            zim_count=sum(1 for root in zim_dirs if root.is_dir() for base,ds,fs in os.walk(root) for f in fs if f.lower().endswith(".zim"))
+            bug_count=sum(1 for p in (knowledge/"bughunter").rglob("SKILL.md")) if (knowledge/"bughunter").is_dir() else 0
+            security_count=sum(1 for p in (knowledge/"security").rglob("*") if p.is_file()) if (knowledge/"security").is_dir() else 0
+            modules=[
+              {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"OUTPOST uses its own loopback-only file layer; AFDrive is the architecture reference.","url":"https://github.com/ashwithfrank/AFDrive"},
+              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"ready" if zim_count else "waiting","count":zim_count,"detail":"ZIM archives are discovered locally; open them with Kiwix JS/PWA.","url":"https://github.com/kiwix/kiwix-js"},
+              {"id":"pfa","name":"Personal File Archive","role":"Local archive and incremental document indexing","status":"core","detail":"Unified local file index and search are built into OUTPOST.","url":"https://github.com/kevin0309/PersonalFileArchive"},
+              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Knowledge folder is indexed locally; add licensed playbooks under knowledge/security.","url":"https://github.com/PentHertz/grimoire"},
+              {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only Termux environment and installed-command detection; no shell commands are run by the dashboard.","url":"https://github.com/termux/termux-tools"},
+              {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"OUTPOST search is local and indexes selected roots; citation-style source paths are shown.","url":"https://github.com/evanderpool/uplink"},
+              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"ready" if bug_count else "waiting","count":bug_count,"detail":"Optional local Agent Skills can be placed under knowledge/bughunter and searched offline.","url":"https://github.com/elementalsouls/Claude-BugHunter"},
+              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"OUTPOST includes safe offline file analysis; active tools are not auto-run.","url":"https://github.com/JerenzeLevi/cyberdesk"}
+            ]
+            self.send_json(modules); return
+        if u.path == "/api/system":
+            import platform, shutil, sys
+            termux=os.environ.get("PREFIX","").startswith("/data/data/com.termux") or "com.termux" in os.environ.get("HOME","")
+            commands=["pkg","termux-info","termux-setup-storage","termux-open-url","git","python"]
+            self.send_json({"termux":termux,"platform":platform.platform(),"machine":platform.machine(),"python":sys.version.split()[0],"commands":{x:bool(shutil.which(x)) for x in commands},"storage":str(Path.home()/"storage/shared") if (Path.home()/"storage/shared").exists() else None}); return
+        if u.path == "/api/files":
+            roots=[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
+            roots.append((ROOT/"knowledge").resolve())
+            found=[]
+            for root in dict.fromkeys(roots):
+                if not root.is_dir(): continue
+                for base,dirs,files in os.walk(root):
+                    dirs[:]=[d for d in dirs if not d.startswith(".") and d not in {"node_modules",".git",".venv","venv","__pycache__"}]
+                    for name in files:
+                        p=Path(base)/name
+                        try:
+                            st=p.stat()
+                            if not p.is_file(): continue
+                            found.append({"name":name,"path":str(p),"root":str(root),"size":st.st_size,"modified":st.st_mtime,"extension":p.suffix.lower()})
+                        except OSError: pass
+                        if len(found)>=1500: break
+                    if len(found)>=1500: break
+            found.sort(key=lambda x:x["name"].lower())
+            self.send_json(found); return
+        if u.path == "/api/zim":
+            roots=[DATA/"zim"]+[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
+            archives=[]; seen=set()
+            for root in dict.fromkeys(roots):
+                if not root.is_dir(): continue
+                for base,dirs,files in os.walk(root):
+                    dirs[:]=[d for d in dirs if not d.startswith(".") and d not in {"node_modules",".git"}]
+                    for name in files:
+                        if name.lower().endswith(".zim"):
+                            p=(Path(base)/name).resolve()
+                            if p in seen: continue
+                            seen.add(p)
+                            try:
+                                st=p.stat(); archives.append({"name":name,"path":str(p),"size":st.st_size,"modified":st.st_mtime})
+                            except OSError: pass
+            self.send_json(archives); return
         if u.path == "/api/notes":
             with connect() as c: rows=[dict(x) for x in c.execute("SELECT * FROM notes ORDER BY updated DESC LIMIT 200")]
             self.send_json(rows); return
@@ -152,6 +211,32 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/file/analyze":
+            raw=str(data.get("path",""))
+            try:
+                p=Path(raw).expanduser().resolve()
+                roots=[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
+                roots.append((ROOT/"knowledge").resolve())
+                if not any(p==root or root in p.parents for root in roots): raise ValueError("File is outside configured archive roots")
+                if not p.is_file(): raise ValueError("File not found")
+                st=p.stat()
+                if st.st_size>5_000_000: raise ValueError("File exceeds the 5 MB analysis limit")
+                import hashlib
+                digest=hashlib.sha256()
+                with p.open("rb") as f:
+                    head=f.read(32); digest.update(head)
+                    while True:
+                        block=f.read(65536)
+                        if not block: break
+                        digest.update(block)
+                signatures=[(b"\\x7fELF","ELF executable"),(b"PK\\x03\\x04","ZIP archive / Office document"),(b"%PDF-","PDF document"),(b"\\x89PNG","PNG image"),(b"\\xff\\xd8\\xff","JPEG image"),(b"GIF8","GIF image"),(b"SQLite format 3","SQLite database")]
+                kind=next((label for magic,label in signatures if head.startswith(magic)), "Text or unknown binary")
+                preview=""
+                if p.suffix.lower() in TEXT_EXT and st.st_size<=1_000_000:
+                    preview=p.read_text(encoding="utf-8",errors="replace")[:4000]
+                self.send_json({"name":p.name,"path":str(p),"size":st.st_size,"modified":st.st_mtime,"sha256":digest.hexdigest(),"type":kind,"preview":preview})
+            except (OSError,ValueError) as e: self.send_json({"error":str(e)},400)
+            return
         if self.path == "/api/ip/calculate":
             raw=str(data.get("address","")).strip()
             try:
