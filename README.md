@@ -1,6 +1,6 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.7.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.8.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
@@ -9,10 +9,10 @@
 - **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
 - **Kiwix + Compact Encyclopedia:** discovers local .zim archives and can launch an already-installed `kiwix-serve` on loopback. A separate streaming XML importer stores cleaned Wikipedia article text compressed in `data/wiki/wiki.db`, with local title/lead search and an in-app reader. A 10 GiB storage ceiling protects the device. Hand-picked raster illustrations can be imported from a local ZIP; most images/media are omitted.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
-- **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
-- **Termux diagnostics:** detects Termux, Python, Git and selected local commands, reports available storage, and can list locally installed packages from the dpkg database. It does not install packages or run arbitrary shell commands.
-- **Claude-BugHunter reference library:** import and search local Agent Skill files and supporting scripts. Imported scripts are stored as reference material and are never executed.
-- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates, ELF/PE headers (including PE section metadata), classic PCAP packet summaries (Ethernet, IPv4/IPv6, TCP/UDP) and bounded text transforms.
+- **Uplink-style retrieval:** separate change-aware passage index with bounded overlapping chunks, SQLite FTS5 BM25 ranking, AND→OR fallback and source-path citations. No embeddings or model required; optional PDF, DOCX, XLSX and XLS extraction works when the relevant libraries are already installed.
+- **Termux-Tools reference:** detects Termux, Python, Git and selected commands, reports storage, lists locally installed packages and shows a local command catalogue with availability checks. Device-changing commands remain manual in Termux.
+- **Claude-BugHunter-inspired offline playbooks:** eight guided review checklists for source code, authentication, web input/output, API authorization, secrets/configuration, Android, dependencies and reporting. The playbooks are local reference material, not an AI agent or the full upstream skill bundle.
+- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates, auto-decoding candidates for Base64/hex/URL/ROT13, ELF/PE headers (including PE section metadata), classic PCAP packet summaries (Ethernet, IPv4/IPv6, TCP/UDP) and bounded text transforms.
 - Notes, collections, bookmarks, IPv4/IPv6 calculations, and JSON backup export/import.
 
 ## Run on Android / Termux
@@ -52,7 +52,7 @@ The JSON backup includes notes, collections and bookmarks. It does not include y
 - Core runtime makes no external API calls and uses no CDN, cloud account, analytics or remote fonts.
 - The app binds to `127.0.0.1` only.
 - Online OSINT, remote recon, web lookups, cloud integrations, remote source syncing and live network scanning are intentionally excluded for now.
-- Kiwix JS PWA assets are not bundled; an already-installed `kiwix-serve` can optionally serve a local ZIM on loopback.
+- The standard Kiwix JS PWA and libzim WASM reader are not bundled; an already-installed `kiwix-serve` can optionally serve a local ZIM on loopback. The compact Wikipedia XML importer is a separate reader and does not decode arbitrary ZIM archives.
 - Optional PDF/Office extraction works only if the relevant libraries are already installed. The base app requires no pip packages.
 
 ## Safety and resource limits
@@ -98,3 +98,12 @@ ZIM archives are user data and are excluded from Git. Keep only the packs you ac
 5. To retain selected illustrations, prepare your own ZIP of chosen JPG/PNG/WebP/GIF images and import it in the same panel. OUTPOST accepts at most 120 images / 150 MB total and rejects SVG/script formats. Only matching article image references are shown.
 
 The 10 GiB cap is a safety ceiling, **not a promise that all English Wikipedia article text will fit**. The import result on your device determines coverage and actual size. The source dump and resulting database coexist during import, so ensure ample free storage before starting. The current importer is an initial practical pipeline; test it on a small XML sample before attempting a multi-gigabyte dump.
+
+
+## OUTPOST 0.8.0 additions
+
+The Knowledge Search page now has a dedicated Uplink passage index. After indexing your selected folders in Settings, choose **Build / refresh passages**; OUTPOST chunks documents locally, detects changed source text and rebuilds only what needs updating. Search results include their original local paths for source checking.
+
+The Security Desk now includes the offline BugHunter review playbooks, automatic decoding candidates, and a Termux command reference with availability checks. These are native, dependency-light additions. OUTPOST deliberately does not execute Termux commands, imported scripts, exploit code or remote tests.
+
+**Integration note:** this is a native, selective feature integration, not a full merge of all upstream codebases. Kiwix JS's standard ZIM reader runtime remains the largest outstanding gap; see [INTEGRATIONS.md](INTEGRATIONS.md) for precise boundaries.
