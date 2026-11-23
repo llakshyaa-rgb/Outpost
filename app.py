@@ -125,6 +125,9 @@ def index_files():
             for name in names:
                 p = Path(base) / name
                 try:
+                    if p.is_symlink():
+                        skipped += 1
+                        continue
                     resolved = p.resolve()
                     if root not in resolved.parents or not resolved.is_file():
                         skipped += 1
@@ -318,6 +321,7 @@ class Handler(BaseHTTPRequestHandler):
                     for name in files:
                         p=Path(base)/name
                         try:
+                            if p.is_symlink(): continue
                             resolved=p.resolve()
                             if root not in resolved.parents or not resolved.is_file(): continue
                             st=resolved.stat()
@@ -336,7 +340,9 @@ class Handler(BaseHTTPRequestHandler):
                     dirs[:]=[d for d in dirs if not d.startswith(".") and d not in {"node_modules",".git"}]
                     for name in files:
                         if name.lower().endswith(".zim"):
-                            p=(Path(base)/name).resolve()
+                            candidate=Path(base)/name
+                            if candidate.is_symlink(): continue
+                            p=candidate.resolve()
                             if p in seen: continue
                             seen.add(p)
                             try:
@@ -553,7 +559,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/file/analyze":
             raw=str(data.get("path",""))
             try:
-                p=Path(raw).expanduser().resolve()
+                p=managed_path(raw)
                 roots=[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
                 roots.append((ROOT/"knowledge").resolve())
                 if not any(p==root or root in p.parents for root in roots): raise ValueError("File is outside configured archive roots")
