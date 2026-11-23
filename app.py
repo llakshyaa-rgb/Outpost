@@ -680,6 +680,34 @@ class Handler(BaseHTTPRequestHandler):
             except (sqlite3.Error, OSError, ValueError) as e:
                 self.send_json({"error":str(e)},400)
             return
+        if self.path == "/api/uplink/feedback":
+            try:
+                from outpost_modules.systems import record_uplink_feedback
+                with LOCK, connect() as c:
+                    fid=record_uplink_feedback(c,data.get("query",""),data.get("chunk_id"),bool(data.get("helpful")),data.get("note",""))
+                self.send_json({"ok":True,"feedback_id":fid})
+            except (sqlite3.Error, OSError, ValueError, TypeError) as e:
+                self.send_json({"error":str(e)},400)
+            return
+        if self.path == "/api/uplink/evaluate":
+            try:
+                from outpost_modules.systems import evaluate_uplink_query
+                query=str(data.get("query","")).strip()
+                expected=str(data.get("expected_path","")).strip()
+                if not query or not expected: raise ValueError("Enter a query and expected source path")
+                with LOCK, connect() as c: result=evaluate_uplink_query(c,query,expected,max(1,min(int(data.get("limit",10)),30)))
+                self.send_json(result)
+            except (sqlite3.Error, OSError, ValueError, TypeError) as e:
+                self.send_json({"error":str(e)},400)
+            return
+        if self.path == "/api/uplink/report":
+            try:
+                from outpost_modules.systems import uplink_report
+                with LOCK, connect() as c: report=uplink_report(c)
+                self.send_json(report)
+            except (sqlite3.Error, OSError) as e:
+                self.send_json({"error":str(e)},503)
+            return
         if self.path == "/api/security/tool":
             import hashlib, math, re, base64, binascii, io, zipfile, stat
             try:
