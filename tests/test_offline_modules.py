@@ -60,11 +60,12 @@ class CyberDeskTests(unittest.TestCase):
         raw[0x98:0x9a] = b"\x0b\x02"
         raw[0x188:0x190] = b".text\x00\x00\x00"
         struct.pack_into("<IIII", raw, 0x190, 0x100, 0x1000, 0x200, 0x400)
-        struct.pack_into("<I", raw, 0x1b0, 0x60000020)
+        struct.pack_into("<I", raw, 0x1ac, 0x60000020)
         from outpost_modules.cyberdesk import pe_header
         section = pe_header(bytes(raw))["section_table"][0]
         self.assertEqual(section["name"], ".text")
         self.assertEqual(section["raw_size"], 0x200)
+        self.assertEqual(section["characteristics"], "0x60000020")
 
     def test_pcap_header(self):
         raw = b"\xd4\xc3\xb2\xa1" + struct.pack("<HHiIII", 2, 4, 0, 0, 65535, 1)
