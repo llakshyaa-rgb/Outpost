@@ -1,6 +1,6 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.3.1 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
