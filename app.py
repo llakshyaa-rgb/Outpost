@@ -263,6 +263,50 @@ class Handler(BaseHTTPRequestHandler):
             termux=os.environ.get("PREFIX","").startswith("/data/data/com.termux") or "com.termux" in os.environ.get("HOME","")
             commands=["pkg","termux-info","termux-setup-storage","termux-open-url","git","python"]
             self.send_json({"termux":termux,"platform":platform.platform(),"machine":platform.machine(),"python":sys.version.split()[0],"commands":{x:bool(shutil.which(x)) for x in commands},"storage":str(Path.home()/"storage/shared") if (Path.home()/"storage/shared").exists() else None}); return
+        if u.path == "/api/knowledge/read":
+            from urllib.parse import parse_qs
+            raw=parse_qs(u.query).get("path",[""])[0]
+            try:
+                p=(ROOT/"knowledge"/raw).resolve()
+                base=(ROOT/"knowledge").resolve()
+                if base not in p.parents or p.is_symlink() or not p.is_file(): raise ValueError("Knowledge file not found")
+                if p.suffix.lower() not in {".md",".txt",".rst",".yaml",".yml",".json",".toml",".py",".sh",".html",".css",".js"}: raise ValueError("Unsupported reference format")
+                if p.stat().st_size>2_000_000: raise ValueError("Reference exceeds the 2 MB preview limit")
+                self.send_json({"name":p.name,"path":str(p.relative_to(base)),"content":p.read_text(encoding="utf-8",errors="replace")}); return
+            except (OSError,ValueError) as e: self.send_json({"error":str(e)},400); return
+        if u.path == "/api/duplicates":
+            import hashlib
+            roots=managed_roots(); buckets={}; scanned=0; total=0
+            for root in roots:
+                for base,dirs,names in os.walk(root,followlinks=False):
+                    dirs[:]=[d for d in dirs if not (Path(base)/d).is_symlink() and d not in {".git","node_modules",".venv","venv","__pycache__"}]
+                    for name in names:
+                        p=Path(base)/name
+                        if p.is_symlink(): continue
+                        try:
+                            st=p.stat()
+                            if not p.is_file() or st.st_size<1 or st.st_size>100_000_000 or scanned>=5000 or total+st.st_size>1_000_000_000: continue
+                            key=(st.st_size)
+                            buckets.setdefault(key,[]).append(p)
+                            scanned+=1; total+=st.st_size
+                        except OSError: continue
+            duplicates=[]
+            for size,paths in buckets.items():
+                if len(paths)<2: continue
+                hashes={}
+                for p in paths:
+                    try:
+                        digest=hashlib.sha256()
+                        with p.open("rb") as stream:
+                            while True:
+                                block=stream.read(262144)
+                                if not block: break
+                                digest.update(block)
+                        hashes.setdefault(digest.hexdigest(),[]).append(str(p))
+                    except OSError: continue
+                for digest,group in hashes.items():
+                    if len(group)>1: duplicates.append({"sha256":digest,"size":size,"files":group})
+            self.send_json({"groups":duplicates,"files_scanned":scanned,"bytes_scanned":total,"limited":scanned>=5000 or total>=1_000_000_000}); return
         if u.path == "/api/knowledge/catalog":
             self.send_json(knowledge_catalog()); return
         if u.path == "/api/file/download":
@@ -540,6 +584,60 @@ class Handler(BaseHTTPRequestHandler):
                         target.rmdir()
                     else: target.unlink()
                     self.send_json({"ok":True}); return
+                if op=="zip":
+                    import zipfile
+                    paths=data.get("paths",[])
+                    if not isinstance(paths,list) or not paths or len(paths)>200: raise ValueError("Select 1–200 files to archive")
+                    parent=managed_path(str(data.get("parent","")),allow_root=True)
+                    name=Path(str(data.get("name") or "outpost-archive.zip")).name
+                    if not name.lower().endswith(".zip"): name+=".zip"
+                    target=(parent/name).resolve()
+                    if target.parent!=parent or target.exists(): raise ValueError("Archive name is invalid or already exists")
+                    resolved=[]
+                    for raw in paths:
+                        p=managed_path(str(raw))
+                        if not p.is_file(): raise ValueError("Only files can be added to a ZIP")
+                        if p.stat().st_size>100_000_000: raise ValueError("A selected file exceeds 100 MB")
+                        resolved.append(p)
+                    with zipfile.ZipFile(target,"x",compression=zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
+                        for p in resolved: archive.write(p,p.name)
+                    self.send_json({"ok":True,"path":str(target),"files":len(resolved),"size":target.stat().st_size},201); return
+                if op=="extract":
+                    import zipfile, stat
+                    source=managed_path(str(data.get("path","")))
+                    parent=managed_path(str(data.get("parent","")),allow_root=True)
+                    if not source.is_file() or source.suffix.lower()!=".zip": raise ValueError("Choose a ZIP file")
+                    if source.stat().st_size>100_000_000: raise ValueError("ZIP exceeds 100 MB")
+                    folder=Path(str(data.get("name") or source.stem)).name
+                    if not folder or folder in {".",".."}: raise ValueError("Invalid destination folder name")
+                    target=(parent/folder).resolve()
+                    if target.parent!=parent or target.exists(): raise ValueError("Destination folder already exists or is invalid")
+                    target.mkdir()
+                    try:
+                        with zipfile.ZipFile(source) as archive:
+                            entries=archive.infolist()
+                            if len(entries)>500: raise ValueError("ZIP contains more than 500 entries")
+                            total=0
+                            for info in entries:
+                                rawname=info.filename.replace("\\\\","/")
+                                rel=Path(rawname)
+                                mode=(info.external_attr>>16)&0xFFFF
+                                if rel.is_absolute() or ".." in rel.parts or rawname.startswith("/") or stat.S_ISLNK(mode): continue
+                                if info.file_size>20_000_000: continue
+                                total+=info.file_size
+                                if total>100_000_000: raise ValueError("Expanded ZIP exceeds 100 MB")
+                                if info.compress_size and info.file_size/max(1,info.compress_size)>500: continue
+                                dest=(target/rel).resolve()
+                                if target not in dest.parents and dest!=target: continue
+                                if info.is_dir(): dest.mkdir(parents=True,exist_ok=True); continue
+                                dest.parent.mkdir(parents=True,exist_ok=True)
+                                if dest.exists(): continue
+                                with archive.open(info) as src, dest.open("xb") as dst:
+                                    shutil.copyfileobj(src,dst,262144)
+                    except Exception:
+                        shutil.rmtree(target,ignore_errors=True)
+                        raise
+                    self.send_json({"ok":True,"path":str(target)} ,201); return
                 if op=="copy":
                     source=managed_path(str(data.get("path","")))
                     parent=managed_path(str(data.get("parent","")),allow_root=True)
