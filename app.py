@@ -754,6 +754,29 @@ class Handler(BaseHTTPRequestHandler):
                 if mode=="decode-auto":
                     from outpost_modules.systems import decode_candidates
                     self.send_json({"candidates":decode_candidates(text_input),"note":"Offline decoding heuristics only; decoded content is untrusted."}); return
+                if mode=="diff":
+                    from outpost_modules.systems import text_diff
+                    before=text_input[:200000]
+                    after=str(data.get("argument",""))[:200000]
+                    if not before and not after: raise ValueError("Provide the original text and comparison text")
+                    self.send_json(text_diff(before,after)); return
+                if mode=="csv-summary":
+                    import csv
+                    if not raw: raise ValueError("Choose a CSV file or paste CSV text")
+                    sample=raw[:2_000_000].decode("utf-8-sig",errors="replace")
+                    rows=list(csv.reader(io.StringIO(sample)))[:20001]
+                    header=rows[0] if rows else []
+                    self.send_json({"columns":header,"rows_sampled":max(0,len(rows)-1),"column_count":len(header),
+                                    "preview":rows[:21],"truncated":len(raw)>2_000_000 or len(rows)>20001}); return
+                if mode=="json-inspect":
+                    if not raw or len(raw)>2_000_000: raise ValueError("Provide JSON smaller than 2 MB")
+                    obj=json.loads(raw.decode("utf-8-sig"))
+                    def shape(value,depth=0):
+                        if depth>8:return "depth-limit"
+                        if isinstance(value,dict):return {"type":"object","keys":list(value.keys())[:100],"children":{str(k):shape(v,depth+1) for k,v in list(value.items())[:30]}}
+                        if isinstance(value,list):return {"type":"array","length":len(value),"sample":shape(value[0],depth+1) if value else None}
+                        return {"type":"null" if value is None else type(value).__name__}
+                    self.send_json({"valid":True,"structure":shape(obj)}); return
                 if mode=="triage":
                     if not raw: raise ValueError("Provide text or select a file")
                     sample=raw[:65536]
