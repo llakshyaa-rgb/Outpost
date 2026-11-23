@@ -269,11 +269,31 @@ class Handler(BaseHTTPRequestHandler):
               {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"Static file triage, ZIP audit, hashes, entropy, strings, IOC extraction, JWT decoding, classical ciphers and local transforms are available."}
             ]
             self.send_json(modules); return
+        if u.path == "/api/termux/packages":
+            import shutil, subprocess
+            command=shutil.which("dpkg-query")
+            if not command:
+                self.send_json({"available":False,"packages":[],"message":"dpkg-query is not installed in this environment"}); return
+            try:
+                proc=subprocess.run([command,"-W","-f=\${binary:Package}\\t\${Version}\\n"],capture_output=True,text=True,timeout=10,check=False)
+                if proc.returncode not in (0,1): raise RuntimeError((proc.stderr or "Package query failed")[:300])
+                lines=proc.stdout.splitlines()
+                rows=[]
+                for line in lines[:2000]:
+                    parts=line.split("\\t",1)
+                    if parts and parts[0]: rows.append({"name":parts[0],"version":parts[1] if len(parts)>1 else ""})
+                self.send_json({"available":True,"count":len(rows),"packages":rows,"truncated":len(lines)>2000,"source":"local dpkg database"}); return
+            except (OSError,subprocess.TimeoutExpired,RuntimeError) as e:
+                self.send_json({"available":False,"packages":[],"message":str(e)},503); return
         if u.path == "/api/system":
             import platform, shutil, sys
             termux=os.environ.get("PREFIX","").startswith("/data/data/com.termux") or "com.termux" in os.environ.get("HOME","")
             commands=["pkg","termux-info","termux-setup-storage","termux-open-url","git","python"]
-            self.send_json({"termux":termux,"platform":platform.platform(),"machine":platform.machine(),"python":sys.version.split()[0],"commands":{x:bool(shutil.which(x)) for x in commands},"storage":str(Path.home()/"storage/shared") if (Path.home()/"storage/shared").exists() else None}); return
+            try:
+                disk=shutil.disk_usage(str(Path.home()))
+                disk_info={"total":disk.total,"used":disk.used,"free":disk.free}
+            except OSError: disk_info=None
+            self.send_json({"termux":termux,"platform":platform.platform(),"machine":platform.machine(),"python":sys.version.split()[0],"commands":{x:bool(shutil.which(x)) for x in commands},"storage":str(Path.home()/"storage/shared") if (Path.home()/"storage/shared").exists() else None,"disk":disk_info,"home":str(Path.home())}); return
         if u.path == "/api/knowledge/read":
             from urllib.parse import parse_qs
             raw=parse_qs(u.query).get("path",[""])[0]
@@ -564,6 +584,7 @@ class Handler(BaseHTTPRequestHandler):
                     ranked.sort(reverse=True)
                     self.send_json({"candidates":[{"key":k,"printable_score":round(score,4),"preview":out[:500].decode("utf-8","replace")} for score,k,out in ranked[:5]]}); return
                 if mode=="pipeline":
+                    import urllib.parse, gzip, html
                     doc=text_input
                     steps=data.get("steps",[])
                     if not isinstance(steps,list) or len(steps)>20: raise ValueError("Provide at most 20 transform steps")
@@ -579,6 +600,26 @@ class Handler(BaseHTTPRequestHandler):
                         elif op=="base64-encode": doc=base64.b64encode(doc.encode()).decode()
                         elif op=="hex-decode": doc=bytes.fromhex(doc).decode("utf-8","replace")
                         elif op=="hex-encode": doc=doc.encode().hex()
+                        elif op=="url-encode": doc=urllib.parse.quote(doc,safe="")
+                        elif op=="url-decode": doc=urllib.parse.unquote(doc,errors="replace")
+                        elif op=="rot13": doc=doc.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ","nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM"))
+                        elif op=="lower": doc=doc.lower()
+                        elif op=="upper": doc=doc.upper()
+                        elif op=="strip": doc=doc.strip()
+                        elif op=="collapse-whitespace": doc=" ".join(doc.split())
+                        elif op=="number-lines": doc="\n".join(str(i+1)+": "+line for i,line in enumerate(doc.splitlines()))
+                        elif op=="json-pretty": doc=json.dumps(json.loads(doc),ensure_ascii=False,indent=2)
+                        elif op=="json-minify": doc=json.dumps(json.loads(doc),ensure_ascii=False,separators=(",",":"))
+                        elif op=="html-escape": doc=html.escape(doc)
+                        elif op=="html-unescape": doc=html.unescape(doc)
+                        elif op=="binary-encode": doc=" ".join(format(byte,"08b") for byte in doc.encode())
+                        elif op=="binary-decode": doc=bytes(int(bit,2) for bit in doc.split()).decode("utf-8","replace")
+                        elif op=="count": self.send_json({"result":doc,"characters":len(doc),"words":len(doc.split()),"lines":len(doc.splitlines()),"bytes":len(doc.encode())}); return
+                        elif op=="gzip-decode":
+                            packed=base64.b64decode(doc,validate=True)
+                            with gzip.GzipFile(fileobj=io.BytesIO(packed)) as stream: expanded=stream.read(1_000_001)
+                            if len(expanded)>1_000_000: raise ValueError("Gzip output exceeds 1 MB")
+                            doc=expanded.decode("utf-8","replace")
                         else: raise ValueError("Unsupported pipeline operation: "+op)
                         if len(doc)>200000: raise ValueError("Pipeline output limit exceeded")
                     self.send_json({"result":doc}); return
