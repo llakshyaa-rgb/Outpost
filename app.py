@@ -21,6 +21,13 @@ KIWIX_PROCESS = None
 KIWIX_PORT = None
 KIWIX_ARCHIVE = None
 
+ZIM_CATALOG = [
+    {"id":"simple-en-nopic","title":"Simple English Wikipedia — full articles, no images","file":"wikipedia_en-simple_all_nopic_2026-09.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en-simple_all_nopic_2026-09.zim","size_bytes":1073741824,"size_label":"about 1.0 GiB","description":"A broad offline encyclopedia in simpler English; full article text without images. Best broad-coverage choice for a 5 GB device budget."},
+    {"id":"medicine-en-nopic","title":"WikiMed — full medical articles, no images","file":"wikipedia_en_medicine_nopic_2026-04.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_nopic_2026-04.zim","size_bytes":881834803,"size_label":"about 822 MiB","description":"Dedicated medical reference collection. Not a substitute for professional medical advice."},
+    {"id":"top-en-mini","title":"English Wikipedia Top — mini summaries","file":"wikipedia_en_top_mini_2026-09.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim","size_bytes":296851866,"size_label":"about 283 MiB","description":"Short introductions and infoboxes for a curated set of popular articles."},
+    {"id":"astronomy-en-maxi","title":"Wikipedia Astronomy — full articles with images","file":"wikipedia_en_astronomy_maxi_2026-08.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en_astronomy_maxi_2026-08.zim","size_bytes":1717986918,"size_label":"about 1.6 GiB","description":"A subject-specific astronomy library with images. Optional; choose this instead of other packs if space is tight."}
+]
+
 def stop_kiwix():
     global KIWIX_PROCESS
     if KIWIX_PROCESS is not None and KIWIX_PROCESS.poll() is None:
@@ -239,7 +246,7 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.5.0"
+    server_version = "OUTPOST/0.6.0"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -257,7 +264,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.5.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.6.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
@@ -419,6 +426,8 @@ class Handler(BaseHTTPRequestHandler):
                     if len(found)>=1500: break
             found.sort(key=lambda x:x["name"].lower())
             self.send_json(found); return
+        if u.path == "/api/zim/catalog":
+            self.send_json({"items":ZIM_CATALOG,"note":"Catalog links require internet only for the initial download. OUTPOST does not download automatically; save chosen .zim files into data/zim/."}); return
         if u.path == "/api/zim":
             roots=[DATA/"zim"]+[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
             archives=[]; seen=set()
