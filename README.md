@@ -1,6 +1,6 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.3.2 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.4.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
@@ -66,3 +66,15 @@ The JSON backup includes notes, collections and bookmarks. It does not include y
 Run local regression tests with `python -m unittest discover -s tests -v`. They cover configured-root access, symlink rejection, indexing and removal of unselected roots. Runtime testing on the target Android/Termux phone is still required. In particular, test shared-storage permissions, SQLite FTS5, optional document extractors, uploads/downloads and large-folder performance.
 
 See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstream license notes.
+
+
+## Compact offline integrations (0.4.0)
+
+- **AFDrive / Personal File Archive:** local file vault with safe folder browsing, upload, create, rename, copy, ZIP creation/extraction, metadata, previews and duplicate detection. Files stay in configured local roots.
+- **Uplink / Grimoire:** standard-library retrieval helpers and SQLite FTS5/BM25 search over local notes, imported Markdown/playbooks and selected folders. Queries are safely quoted and fall back from AND to OR. No embeddings, model, or cloud service.
+- **Claude-BugHunter:** a compact, searchable index of 83 skill descriptions is included in `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` with attribution. It is reference material, not a full Claude Code plugin; no upstream scripts are executed.
+- **CyberDesk:** lightweight static analysis for strings, hex, ELF/PE headers, embedded file signatures and PCAP metadata, alongside the existing hashes, entropy, IOC, JWT, ZIP and transform tools. No heavy native dependencies.
+- **Termux-Tools:** read-only Termux diagnostics, command availability and local package inventory. No automatic package installation or shell execution.
+- **Kiwix JS:** local ZIM discovery and metadata only. Full reading requires a separately installed Kiwix reader; OUTPOST deliberately does not bundle its large WASM runtime or download content.
+
+Core runtime remains loopback-only and makes no external network requests. Optional file formats requiring third-party libraries stay unavailable unless the user has installed those libraries. No ZIM/wordlist/corpus is bundled, keeping repository and runtime footprint small.
