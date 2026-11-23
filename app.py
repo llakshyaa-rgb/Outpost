@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """OUTPOST: offline-first, loopback-only personal command centre."""
 from __future__ import annotations
-import json, mimetypes, os, sqlite3, threading, time
+import atexit, json, mimetypes, os, shutil, socket, sqlite3, subprocess, threading, time
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, unquote
@@ -17,6 +17,16 @@ MAX_FILE = 5_000_000
 TEXT_EXT = {".txt",".md",".markdown",".json",".csv",".py",".js",".ts",".tsx",".jsx",".html",".css",".yml",".yaml",".toml",".ini",".cfg",".log",".xml",".sh",".sql"}
 DOC_EXT = {".pdf",".docx",".xlsx",".xls"}
 LOCK = threading.RLock()
+KIWIX_PROCESS = None
+KIWIX_PORT = None
+KIWIX_ARCHIVE = None
+
+def stop_kiwix():
+    global KIWIX_PROCESS
+    if KIWIX_PROCESS is not None and KIWIX_PROCESS.poll() is None:
+        try: KIWIX_PROCESS.terminate()
+        except OSError: pass
+atexit.register(stop_kiwix)
 
 def connect():
     c = sqlite3.connect(DB, timeout=10)
@@ -226,7 +236,7 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.4.0"
+    server_version = "OUTPOST/0.5.0"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -244,7 +254,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.4.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.5.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
@@ -483,6 +493,32 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/zim/serve":
+            global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE
+            command=shutil.which("kiwix-serve")
+            if not command:
+                self.send_json({"error":"kiwix-serve is not installed. Install the Kiwix tools package separately; OUTPOST will not download or install it."},409); return
+            try:
+                archive=managed_path(str(data.get("path","")))
+                if not archive.is_file() or archive.suffix.lower()!=".zim":
+                    raise ValueError("Choose a local .zim archive")
+                if KIWIX_PROCESS is not None and KIWIX_PROCESS.poll() is None and KIWIX_ARCHIVE==str(archive):
+                    self.send_json({"ok":True,"url":f"http://127.0.0.1:{KIWIX_PORT}/","port":KIWIX_PORT,"reused":True}); return
+                stop_kiwix()
+                with socket.socket() as sock:
+                    sock.bind(("127.0.0.1",0))
+                    port=sock.getsockname()[1]
+                proc=subprocess.Popen([command,"--address=127.0.0.1",f"--port={port}",str(archive)],
+                    stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                    close_fds=True,start_new_session=True)
+                time.sleep(0.25)
+                if proc.poll() is not None:
+                    raise RuntimeError("kiwix-serve exited while starting. Check the installed Kiwix tools and ZIM file.")
+                KIWIX_PROCESS,KIWIX_PORT,KIWIX_ARCHIVE=proc,port,str(archive)
+                self.send_json({"ok":True,"url":f"http://127.0.0.1:{port}/","port":port,"archive":archive.name,
+                    "note":"Local-only Kiwix server bound to 127.0.0.1; it stops when OUTPOST exits."},201); return
+            except (OSError,ValueError,RuntimeError) as e:
+                self.send_json({"error":str(e)},400); return
         if self.path == "/api/security/tool":
             import hashlib, math, re, base64, binascii, io, zipfile, stat
             try:
@@ -735,11 +771,44 @@ class Handler(BaseHTTPRequestHandler):
                     source=managed_path(str(data.get("path","")))
                     parent=managed_path(str(data.get("parent","")),allow_root=True)
                     name=Path(str(data.get("name") or source.name)).name
+                    if not name or name in {".",".."}: raise ValueError("Invalid destination name")
                     target=(parent/name).resolve()
                     if target.parent!=parent or target.exists(): raise ValueError("Invalid or existing destination")
-                    if source.is_dir(): raise ValueError("Folder copying is not supported")
-                    shutil.copy2(source,target)
-                    self.send_json({"ok":True,"path":str(target)}); return
+                    if source.is_dir():
+                        if source in target.parents: raise ValueError("A folder cannot be copied inside itself")
+                        target.mkdir()
+                        copied=total=0
+                        try:
+                            for base,dirs,names in os.walk(source,followlinks=False):
+                                bp=Path(base)
+                                dirs[:]=[d for d in dirs if not (bp/d).is_symlink()]
+                                dest=target/bp.relative_to(source)
+                                dest.mkdir(parents=True,exist_ok=True)
+                                for filename in names:
+                                    original=bp/filename
+                                    if original.is_symlink(): continue
+                                    st=original.stat()
+                                    if not original.is_file() or st.st_size>100_000_000: continue
+                                    copied+=1; total+=st.st_size
+                                    if copied>2000 or total>300_000_000: raise ValueError("Folder copy exceeds 2,000 files or 300 MB")
+                                    shutil.copy2(original,dest/filename)
+                        except Exception:
+                            shutil.rmtree(target,ignore_errors=True)
+                            raise
+                    else:
+                        if source.stat().st_size>300_000_000: raise ValueError("File exceeds the 300 MB copy limit")
+                        shutil.copy2(source,target)
+                    self.send_json({"ok":True,"path":str(target),"directory":source.is_dir()}); return
+                if op=="move":
+                    source=managed_path(str(data.get("path","")))
+                    parent=managed_path(str(data.get("parent","")),allow_root=True)
+                    name=Path(str(data.get("name") or source.name)).name
+                    if not name or name in {".",".."}: raise ValueError("Invalid destination name")
+                    target=(parent/name).resolve()
+                    if target.parent!=parent or target.exists(): raise ValueError("Invalid or existing destination")
+                    if source.is_dir() and source in parent.parents: raise ValueError("A folder cannot be moved inside itself")
+                    shutil.move(str(source),str(target))
+                    self.send_json({"ok":True,"path":str(target),"directory":target.is_dir()}); return
                 raise ValueError("Unsupported file operation")
             except (OSError,ValueError,base64.binascii.Error) as e:
                 self.send_json({"error":str(e)},400); return
