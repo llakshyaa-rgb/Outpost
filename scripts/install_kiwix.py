@@ -53,7 +53,7 @@ def main():
                 if relative.is_absolute() or ".." in relative.parts: raise RuntimeError("Unsafe path in source archive")
                 # Only the build inputs and upstream source are extracted.
                 if not (str(relative).startswith(("www/","i18n/","_locales/","archives/")) or
-                        relative.name in {"package.json","package-lock.json","rollup.config.js","LICENSE-GPLv3.txt","CHANGELOG.md","service-worker.js","replayWorker.js","manifest.webmanifest","index.html","backgroundscript.js"}):
+                        relative.name.startswith("manifest.") or relative.name in {"package.json","package-lock.json","rollup.config.js","LICENSE-GPLv3.txt","CHANGELOG.md","service-worker.js","replayWorker.js","index.html","backgroundscript.js"}):
                     continue
                 target=source/relative
                 if info.is_dir(): target.mkdir(parents=True,exist_ok=True); continue
@@ -68,26 +68,29 @@ def main():
             raise RuntimeError("Kiwix build did not produce the expected PWA entry files")
         size=sum(p.stat().st_size for p in built.rglob("*") if p.is_file())
         if size>MAX_BUNDLE: raise RuntimeError(f"Built reader is too large ({size} bytes); refusing to install")
-        # Preserve the upstream dist layout: /kiwix/www/ is the PWA, and the
-        # service worker is one directory above it so its precache URLs resolve.
-        shutil.copytree(built,DEST)
+        # Stage the complete upstream dist layout atomically. The PWA lives in
+        # /kiwix/www/ and its service worker in /kiwix/ so precache paths resolve.
+        staging=DEST.with_name("kiwix.installing")
+        if staging.exists(): shutil.rmtree(staging)
+        shutil.copytree(built,staging)
         license_src=source/"LICENSE-GPLv3.txt"
-        if license_src.is_file(): shutil.copy2(license_src,DEST/"LICENSE-GPLv3.txt")
-        (DEST/"OUTPOST-KIWIX-SOURCE.txt").write_text(
-            "Kiwix JS upstream: https://github.com/kiwix/kiwix-js\n"
-            f"Pinned source commit: {COMMIT}\n"
-            "License: GNU GPL version 3 (see LICENSE-GPLv3.txt)\n"
-            "This directory is the upstream production build. OUTPOST tightens the entry-page CSP to local-only resource origins.\n",
+        if license_src.is_file(): shutil.copy2(license_src,staging/"LICENSE-GPLv3.txt")
+        (staging/"OUTPOST-KIWIX-SOURCE.txt").write_text(
+            "Kiwix JS upstream: https://github.com/kiwix/kiwix-js\\n"
+            f"Pinned source commit: {COMMIT}\\n"
+            "License: GNU GPL version 3 (see LICENSE-GPLv3.txt)\\n"
+            "This directory is the upstream production build. OUTPOST tightens the entry-page CSP to local-only resource origins.\\n",
             encoding="utf-8")
-        # Force local-only resource loading and remove root-level manifest URL.
-        index=DEST/"www"/"index.html"
+        # Force local-only resource loading and remove the root-level manifest URL.
+        index=staging/"www"/"index.html"
         html=index.read_text(encoding="utf-8")
         import re
-        html=re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', 
-            '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: file: blob: about:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' \'wasm-unsafe-eval\' blob:; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: file: blob:; font-src \'self\' data:; connect-src \'self\'; worker-src \'self\' blob:; frame-src \'self\'; object-src \'none\';">',html,count=1,flags=re.I)
-        html=re.sub(r'<link[^>]+rel=["\']manifest["\'][^>]*>', '',html,flags=re.I)
+        html=re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>',
+            '<meta http-equiv="Content-Security-Policy" content="default-src \\'self\\' data: file: blob: about:; script-src \\'self\\' \\'unsafe-inline\\' \\'unsafe-eval\\' \\'wasm-unsafe-eval\\' blob:; style-src \\'self\\' \\'unsafe-inline\\'; img-src \\'self\\' data: file: blob:; font-src \\'self\\' data:; connect-src \\'self\\'; worker-src \\'self\\' blob:; frame-src \\'self\\'; object-src \\'none\\';">',html,count=1,flags=re.I)
+        html=re.sub(r'<link[^>]+rel=["\\']manifest["\\'][^>]*>', '',html,flags=re.I)
         html=html.replace('href="../node_modules/bootstrap/dist/css/bootstrap.min.css"','href="css/bootstrap.min.css"')
         index.write_text(html,encoding="utf-8")
+        os.replace(staging,DEST)
     print("Kiwix JS installed locally:",DEST)
     print("Open OUTPOST → Offline library → Launch bundled Kiwix reader.")
     print("The build folder and npm dependencies were temporary and have been removed.")
