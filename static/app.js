@@ -43,6 +43,7 @@ $('#file-list').onclick=async e=>{
  if(b.dataset.action==='rename')return window.fileRename(f.path);
  if(b.dataset.action==='delete')return window.fileDelete(f.path);
  if(b.dataset.action==='copy')return window.fileCopy(f.path);
+ if(b.dataset.action==='move')return window.fileMove(f.path);
  if(b.dataset.action==='extract')return window.fileExtract(f.path);
 };
 window.inspectFile=async i=>{const f=window.visibleOutpostFiles?.[i];if(!f)return;try{const d=await api('file/analyze',{method:'POST',body:JSON.stringify({path:f.path})});$('#file-analysis').classList.remove('empty-state');$('#file-analysis').innerHTML='<div class="item"><b>'+esc(d.name)+'</b><p>'+esc(d.type)+' · '+d.size.toLocaleString()+' bytes</p><small>SHA-256</small><code class="hash">'+esc(d.sha256)+'</code><pre>'+esc(d.preview||'No text preview available.')+'</pre></div>'}catch(e){toast(e.message)}};
