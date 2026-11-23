@@ -390,7 +390,17 @@ class Handler(BaseHTTPRequestHandler):
                             if p in seen: continue
                             seen.add(p)
                             try:
-                                st=p.stat(); archives.append({"name":name,"path":str(p),"size":st.st_size,"modified":st.st_mtime})
+                                st=p.stat()
+                                meta={"name":name,"path":str(p),"size":st.st_size,"modified":st.st_mtime,"valid_header":False}
+                                try:
+                                    with p.open("rb") as stream: header=stream.read(32)
+                                    if len(header)>=32 and header[:3]==b"ZIM":
+                                        import struct
+                                        major,minor=struct.unpack_from("<HH",header,4)
+                                        articles,clusters=struct.unpack_from("<II",header,24)
+                                        meta.update({"valid_header":True,"version":str(major)+"."+str(minor),"articles":articles,"clusters":clusters})
+                                except (OSError,ValueError,struct.error): pass
+                                archives.append(meta)
                             except OSError: pass
             self.send_json(archives); return
         if u.path == "/api/notes":
