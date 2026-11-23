@@ -10,3 +10,6 @@ data/config.json
 *.zim.*
 # Local backup exports
 outpost-backup-*.json
+
+# Generated official Kiwix JS production bundle (installed locally by scripts/install_kiwix.py)
+static/kiwix/
