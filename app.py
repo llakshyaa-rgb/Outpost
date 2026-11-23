@@ -20,6 +20,8 @@ LOCK = threading.RLock()
 KIWIX_PROCESS = None
 KIWIX_PORT = None
 KIWIX_ARCHIVE = None
+WIKI_IMPORT_THREAD = None
+WIKI_IMPORT_STATE = {"running":False,"pages_seen":0,"articles_saved":0,"error":""}
 
 ZIM_CATALOG = [
     {"id":"simple-en-nopic","title":"Simple English Wikipedia — full articles, no images","file":"wikipedia_en-simple_all_nopic_2026-09.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en-simple_all_nopic_2026-09.zim","size_bytes":1073741824,"size_label":"about 1.0 GiB","description":"A broad offline encyclopedia in simpler English; full article text without images. Best broad-coverage choice for a 5 GB device budget."},
@@ -246,7 +248,7 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.6.0"
+    server_version = "OUTPOST/0.7.0"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -264,7 +266,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.6.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.7.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
@@ -426,6 +428,27 @@ class Handler(BaseHTTPRequestHandler):
                     if len(found)>=1500: break
             found.sort(key=lambda x:x["name"].lower())
             self.send_json(found); return
+        if u.path == "/api/wiki/status":
+            from outpost_modules.wiki_compact import stats
+            info=stats(str(DATA/"wiki"/"wiki.db"))
+            info.update(WIKI_IMPORT_STATE)
+            self.send_json(info); return
+        if u.path == "/api/wiki/search":
+            from urllib.parse import parse_qs
+            from outpost_modules.wiki_compact import search, stats
+            q=parse_qs(u.query).get("q",[""])[0]
+            if not stats(str(DATA/"wiki"/"wiki.db"))["ready"]:
+                self.send_json({"error":"Import a Wikipedia XML dump first"},409); return
+            self.send_json(search(str(DATA/"wiki"/"wiki.db"),q)); return
+        if u.path == "/api/wiki/article":
+            from urllib.parse import parse_qs
+            from outpost_modules.wiki_compact import article
+            try:
+                item=article(str(DATA/"wiki"/"wiki.db"),int(parse_qs(u.query).get("id",["0"])[0]))
+                if item is None: raise ValueError("Article not found")
+                self.send_json(item); return
+            except (ValueError, OSError) as e:
+                self.send_json({"error":str(e)},400); return
         if u.path == "/api/zim/catalog":
             self.send_json({"items":ZIM_CATALOG,"note":"Catalog links require internet only for the initial download. OUTPOST does not download automatically; save chosen .zim files into data/zim/."}); return
         if u.path == "/api/zim":
@@ -505,6 +528,31 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/wiki/import":
+            global WIKI_IMPORT_THREAD, WIKI_IMPORT_STATE
+            try:
+                source=managed_path(str(data.get("path","")))
+                if not source.is_file(): raise ValueError("Choose a dump file inside a configured folder")
+                if source.suffix.lower() not in {".xml",".bz2",".gz"}: raise ValueError("Use an XML, .xml.bz2 or .xml.gz Wikipedia dump")
+                if WIKI_IMPORT_THREAD is not None and WIKI_IMPORT_THREAD.is_alive():
+                    raise ValueError("A Wikipedia import is already running")
+                (DATA/"wiki").mkdir(parents=True,exist_ok=True)
+                WIKI_IMPORT_STATE={"running":True,"pages_seen":0,"articles_saved":0,"error":"","started":time.time()}
+                def run_wiki_import():
+                    global WIKI_IMPORT_STATE
+                    try:
+                        from outpost_modules.wiki_compact import import_dump
+                        def progress(info):
+                            WIKI_IMPORT_STATE.update(info)
+                        result=import_dump(str(source),str(DATA/"wiki"/"wiki.db"),progress)
+                        WIKI_IMPORT_STATE.update(result); WIKI_IMPORT_STATE["running"]=False
+                    except Exception as exc:
+                        WIKI_IMPORT_STATE.update({"running":False,"error":str(exc)[:500]})
+                WIKI_IMPORT_THREAD=threading.Thread(target=run_wiki_import,name="outpost-wiki-import",daemon=True)
+                WIKI_IMPORT_THREAD.start()
+                self.send_json({"ok":True,"message":"Wikipedia import started. Keep the source file in place until it finishes."},202); return
+            except (OSError,ValueError) as e:
+                self.send_json({"error":str(e)},400); return
         if self.path == "/api/zim/serve":
             global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE
             command=shutil.which("kiwix-serve")
