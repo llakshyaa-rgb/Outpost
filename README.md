@@ -1,13 +1,13 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.5.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.6.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
 - **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename, copy files and bounded directory trees, move files/folders, delete and create ZIP archives; safe ZIP extraction; explicit roots only.
 - **Archive hygiene:** scan selected folders for byte-identical duplicates using SHA-256, with bounded scan sizes.
 - **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
-- **Kiwix library:** discovers local .zim archives and can launch an already-installed `kiwix-serve` bound strictly to `127.0.0.1`; no reader runtime or ZIM content is bundled.
+- **Kiwix library:** discovers local .zim archives, provides a small curated download catalog, and can launch an already-installed `kiwix-serve` bound strictly to `127.0.0.1`. ZIM downloads are user-initiated; no content is bundled or fetched automatically.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
 - **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
 - **Termux diagnostics:** detects Termux, Python, Git and selected local commands, reports available storage, and can list locally installed packages from the dpkg database. It does not install packages or run arbitrary shell commands.
@@ -78,3 +78,10 @@ See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstr
 - **Kiwix JS:** local ZIM discovery and metadata, plus optional launch of an already-installed `kiwix-serve` bound to loopback. OUTPOST does not bundle a reader runtime or download content.
 
 Core runtime remains loopback-only and makes no external network requests. Optional file formats requiring third-party libraries stay unavailable unless the user has installed those libraries. No ZIM/wordlist/corpus is bundled, keeping repository and runtime footprint small.
+
+
+## Offline knowledge packs (0.6.0)
+
+The Offline library page now includes a curated ZIM catalog. These are optional downloads; OUTPOST never fetches them automatically. Download a selected archive, move the resulting `.zim` file into `data/zim/`, then press **Scan archives**. The suggested broad-coverage set is Simple English Wikipedia (full text, no images), WikiMed (no images), and English Wikipedia Top (mini summaries). Astronomy is an optional larger subject pack. The catalog sizes are approximate and can change when Kiwix republishes an archive. The full English Wikipedia is far larger than 5 GB; Kiwix's `mini`, `nopic`, and `maxi` editions have substantially different coverage and size. See the [Kiwix FAQ](https://get.kiwix.org/en/faq/) for edition definitions.
+
+ZIM archives are user data and are excluded from Git. Keep only the packs you actually need; the app and reader do not need to be duplicated inside each archive.
