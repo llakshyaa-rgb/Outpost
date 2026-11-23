@@ -233,7 +233,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.2.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.3.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
