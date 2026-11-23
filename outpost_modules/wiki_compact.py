@@ -99,8 +99,12 @@ def import_dump(source: str, db_path: str, progress=None):
         conn.execute("DELETE FROM articles")
         total=kept=0; batch=[]
         with _open_dump(path) as stream:
-            for _, elem in ET.iterparse(stream, events=("end",)):
-                if elem.tag.rsplit("}",1)[-1] != "page": continue
+            root=None
+            for event, elem in ET.iterparse(stream, events=("start","end")):
+                if root is None:
+                    root=elem
+                    continue
+                if event != "end" or elem.tag.rsplit("}",1)[-1] != "page": continue
                 title=elem.findtext("./{*}title") or ""
                 ns=elem.findtext("./{*}ns") or "0"
                 revision=elem.find("./{*}revision")
@@ -114,6 +118,7 @@ def import_dump(source: str, db_path: str, progress=None):
                         batch.append((title,zlib.compress(body.encode("utf-8"),6),len(body),lead,"\n".join(images),time.time()))
                         kept += 1
                 elem.clear()
+                if root is not None: root.clear()
                 if len(batch)>=300:
                     with conn:
                         conn.executemany("INSERT OR REPLACE INTO articles(title,body,chars,lead,images,updated) VALUES(?,?,?,?,?,?)",batch)
