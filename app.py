@@ -113,7 +113,7 @@ def payload(handler):
     return json.loads(raw.decode("utf-8"))
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.1"
+    server_version = "OUTPOST/0.2"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -125,7 +125,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.1.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.2.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
@@ -161,14 +161,15 @@ class Handler(BaseHTTPRequestHandler):
             found=[]
             for root in dict.fromkeys(roots):
                 if not root.is_dir(): continue
-                for base,dirs,files in os.walk(root):
-                    dirs[:]=[d for d in dirs if not d.startswith(".") and d not in {"node_modules",".git",".venv","venv","__pycache__"}]
+                for base,dirs,files in os.walk(root, followlinks=False):
+                    dirs[:]=[d for d in dirs if not d.startswith(".") and d not in {"node_modules",".git",".venv","venv","__pycache__"} and not (Path(base)/d).is_symlink()]
                     for name in files:
                         p=Path(base)/name
                         try:
-                            st=p.stat()
-                            if not p.is_file(): continue
-                            found.append({"name":name,"path":str(p),"root":str(root),"size":st.st_size,"modified":st.st_mtime,"extension":p.suffix.lower()})
+                            resolved=p.resolve()
+                            if root not in resolved.parents or not resolved.is_file(): continue
+                            st=resolved.stat()
+                            found.append({"name":name,"path":str(resolved),"root":str(root),"size":st.st_size,"modified":st.st_mtime,"extension":resolved.suffix.lower()})
                         except OSError: pass
                         if len(found)>=1500: break
                     if len(found)>=1500: break
