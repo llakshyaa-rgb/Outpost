@@ -194,8 +194,11 @@ def managed_roots():
             p=Path(raw).expanduser().resolve()
             if p.is_dir(): roots.append(p)
         except OSError: pass
-    k=(ROOT/"knowledge").resolve()
-    if k.is_dir(): roots.append(k)
+    # OUTPOST-owned offline libraries are managed roots even when they are
+    # deliberately excluded from general document indexing.
+    for owned in (DATA/"zim", ROOT/"knowledge"):
+        p=owned.resolve()
+        if p.is_dir(): roots.append(p)
     return list(dict.fromkeys(roots))
 
 def managed_path(raw, allow_root=False):
