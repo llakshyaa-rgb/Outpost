@@ -132,6 +132,8 @@ def index_files():
                     if root not in resolved.parents or not resolved.is_file():
                         skipped += 1
                         continue
+                    if str(resolved) in seen:
+                        continue
                     if resolved.suffix.lower() not in TEXT_EXT | DOC_EXT:
                         skipped += 1
                         continue
@@ -153,7 +155,7 @@ def index_files():
                     seen.add(str(resolved))
                     count += 1
                     total_bytes += st.st_size
-                except (OSError, sqlite3.Error):
+                except Exception:
                     skipped += 1
     stale = 0
     with LOCK, connect() as c:
@@ -170,7 +172,9 @@ def payload(handler):
     n = int(handler.headers.get("Content-Length","0"))
     if n < 0 or n > MAX_BODY: raise ValueError("Request too large")
     raw = handler.rfile.read(n) if n else b"{}"
-    return json.loads(raw.decode("utf-8"))
+    value=json.loads(raw.decode("utf-8"))
+    if not isinstance(value,dict): raise ValueError("Request body must be a JSON object")
+    return value
 
 
 def managed_roots():
@@ -222,14 +226,20 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.2"
+    server_version = "OUTPOST/0.3.1"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(status); self.send_header("Content-Type","application/json; charset=utf-8")
         self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store")
+        self.send_header("X-Content-Type-Options","nosniff")
+        self.send_header("Referrer-Policy","no-referrer")
+        self.send_header("X-Frame-Options","DENY")
         self.end_headers(); self.wfile.write(data)
     def do_GET(self):
+        host=self.headers.get("Host","").split(":")[0].strip("[]").lower()
+        if host not in {"127.0.0.1","localhost"}:
+            self.send_json({"error":"Invalid local Host header"},403); return
         u = urlparse(self.path)
         if u.path == "/api/status":
             with connect() as c:
@@ -441,6 +451,9 @@ class Handler(BaseHTTPRequestHandler):
         data=p.read_bytes(); typ=mimetypes.guess_type(str(p))[0] or "application/octet-stream"
         self.send_response(200); self.send_header("Content-Type",typ); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
     def do_POST(self):
+        host=self.headers.get("Host","").split(":")[0].strip("[]").lower()
+        if host not in {"127.0.0.1","localhost"}:
+            self.send_json({"error":"Invalid local Host header"},403); return
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
@@ -685,7 +698,13 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 raw=base64.b64decode(str(data.get("archive_base64","")),validate=True)
                 if len(raw)>15_000_000: raise ValueError("Knowledge archive exceeds the 15 MB upload limit")
-                target=(ROOT/"knowledge"/"imported").resolve()
+                knowledge_root=ROOT/"knowledge"
+                imported_root=knowledge_root/"imported"
+                if knowledge_root.is_symlink() or imported_root.is_symlink():
+                    raise ValueError("Knowledge import folder cannot be a symlink")
+                target=imported_root.resolve()
+                if target.parent!=knowledge_root.resolve():
+                    raise ValueError("Knowledge import folder is outside OUTPOST")
                 target.mkdir(parents=True,exist_ok=True)
                 allowed={".md",".txt",".rst",".yaml",".yml",".json",".toml",".py",".sh",".html",".css",".js"}
                 count=0; total=0; skipped=0
@@ -828,6 +847,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"ok":True,"index_roots":clean}); return
         self.send_json({"error":"Not found"},404)
     def do_DELETE(self):
+        host=self.headers.get("Host","").split(":")[0].strip("[]").lower()
+        if host not in {"127.0.0.1","localhost"}:
+            self.send_json({"error":"Invalid local Host header"},403); return
         from urllib.parse import parse_qs
         u=urlparse(self.path); q=parse_qs(u.query)
         try: ident=int(q.get("id",["0"])[0])
