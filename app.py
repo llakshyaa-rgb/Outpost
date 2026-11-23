@@ -774,14 +774,16 @@ class Handler(BaseHTTPRequestHandler):
                 if mode=="json-inspect":
                     if not raw or len(raw)>2_000_000: raise ValueError("Provide JSON smaller than 2 MB")
                     obj=json.loads(raw.decode("utf-8-sig"))
+                    import itertools
                     budget={"nodes":0}
                     def shape(value,depth=0):
                         budget["nodes"]+=1
                         if depth>=8:return {"type":"depth-limit"}
                         if budget["nodes"]>1500:return {"type":"node-limit"}
                         if isinstance(value,dict):
-                            items=list(value.items())[:30]
-                            return {"type":"object","key_count":len(value),"keys":[str(k)[:160] for k in list(value.keys())[:100]],
+                            items=list(itertools.islice(value.items(),30))
+                            keys=[str(k)[:160] for k in itertools.islice(value.keys(),100)]
+                            return {"type":"object","key_count":len(value),"keys":keys,
                                     "children":{str(k)[:160]:shape(v,depth+1) for k,v in items}}
                         if isinstance(value,list):
                             return {"type":"array","length":len(value),"sample":[shape(v,depth+1) for v in value[:5]]}
