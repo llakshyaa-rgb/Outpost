@@ -505,6 +505,14 @@ class Handler(BaseHTTPRequestHandler):
                     FROM bookmarks b LEFT JOIN collections c ON c.id=b.collection_id
                     ORDER BY b.created DESC LIMIT 300""")]
             self.send_json(rows); return
+        if u.path == "/api/uplink/queue":
+            try:
+                from outpost_modules.systems import list_uplink_questions
+                with LOCK, connect() as c: items=list_uplink_questions(c)
+                self.send_json(items)
+            except (sqlite3.Error, OSError) as e:
+                self.send_json({"error":str(e)},503)
+            return
         if u.path == "/api/uplink/status":
             try:
                 from outpost_modules.systems import ensure_uplink
@@ -697,6 +705,26 @@ class Handler(BaseHTTPRequestHandler):
                 if not query or not expected: raise ValueError("Enter a query and expected source path")
                 with LOCK, connect() as c: result=evaluate_uplink_query(c,query,expected,max(1,min(int(data.get("limit",10)),30)))
                 self.send_json(result)
+            except (sqlite3.Error, OSError, ValueError, TypeError) as e:
+                self.send_json({"error":str(e)},400)
+            return
+        if self.path == "/api/uplink/ask":
+            try:
+                from outpost_modules.systems import queue_uplink_question, search_uplink
+                query=str(data.get("query","")).strip()
+                if not query: raise ValueError("Enter a question")
+                with LOCK, connect() as c:
+                    qid=queue_uplink_question(c,query)
+                    results=search_uplink(c,query,max(1,min(int(data.get("limit",10)),30)))
+                self.send_json({"question_id":qid,"query":query,"results":results,"queued":True})
+            except (sqlite3.Error, OSError, ValueError, TypeError) as e:
+                self.send_json({"error":str(e)},400)
+            return
+        if self.path == "/api/uplink/resolve":
+            try:
+                from outpost_modules.systems import close_uplink_question
+                with LOCK, connect() as c: close_uplink_question(c,int(data.get("id",0)),data.get("answer_note",""))
+                self.send_json({"ok":True})
             except (sqlite3.Error, OSError, ValueError, TypeError) as e:
                 self.send_json({"error":str(e)},400)
             return
