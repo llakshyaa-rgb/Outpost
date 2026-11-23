@@ -10,6 +10,8 @@ from pathlib import Path
 STOP={"a","an","and","are","as","at","be","by","for","from","how","in","is","it","of","on","or","the","this","to","was","what","when","where","which","with"}
 
 def chunk_text(text: str, max_chars: int=1600, overlap: int=200) -> list[str]:
+    max_chars=max(128,int(max_chars))
+    overlap=max(0,min(int(overlap),max_chars//2))
     text=text.strip()
     if not text: return []
     blocks=[x.strip() for x in re.split(r"\n\s*\n",text) if x.strip()] or [text]
@@ -64,13 +66,15 @@ def rebuild_uplink(conn, max_docs=5000, max_chunks=100000):
         digest=hashlib.sha256(body.encode("utf-8",errors="replace")).hexdigest()
         old=conn.execute("SELECT content_sha FROM uplink_chunks WHERE document_id=? LIMIT 1",(did,)).fetchone()
         if old and old[0]==digest: continue
-        if old:
-            conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,)); refreshed+=1
         title=str(d["name"] or Path(d["path"]).name)
         chunks=chunk_text(body)
         if not chunks: skipped+=1; continue
+        if added+len(chunks)>max_chunks:
+            skipped+=1
+            continue
+        if old:
+            conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,)); refreshed+=1
         for n,chunk in enumerate(chunks):
-            if added>=max_chunks: skipped+=1; break
             section=f"Part {n+1}"
             conn.execute("""INSERT INTO uplink_chunks(document_id,path,title,section,body,ordinal,indexed,content_sha)
                 VALUES(?,?,?,?,?,?,?,?)""",(did,d["path"],title,section,chunk,n,time.time(),digest))
