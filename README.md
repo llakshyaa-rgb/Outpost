@@ -8,6 +8,7 @@
 - SQLite database with full-text search (FTS5 when available).
 - Create, edit, and delete notes; organise saved references into collections.
 - Global search across indexed files, notes, and saved references.
+- Offline IPv4/IPv6 address and CIDR calculator (network, range, masks, and address classification).
 - Portable JSON backup export and additive restore.
 - Explicit-root file indexing and local text search.
 - Responsive dark command-centre UI with no remote font or CDN dependency.
@@ -46,6 +47,8 @@ OUTPOST does not scan your device automatically. Add only folders you choose in 
 3. Add authenticated local-network pairing with explicit approval.
 4. Add optional adapters for selected open-source tools after license and platform review.
 5. Add encrypted backups.
+
+The IP toolbox performs calculations only; it does not scan hosts or contact external services.
 
 OUTPOST is a local knowledge and productivity workspace, not an offensive security tool.
 ## Optional integrations (design review)
