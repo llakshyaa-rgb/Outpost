@@ -6,9 +6,9 @@
 
 - Local-only Python server (standard library; no pip dependencies).
 - SQLite database with full-text search (FTS5 when available).
-- Notes and saved knowledge collections.
+- Notes, saved references, and knowledge collections.
 - Explicit-root file indexing and local text search.
-- Responsive dark command-centre UI.
+- Responsive dark command-centre UI with no remote font or CDN dependency.
 - Health/status endpoint and safe local API.
 - No cloud account, telemetry, remote access, or external API required.
 
@@ -45,3 +45,18 @@ OUTPOST does not scan your device automatically. Add only folders you choose in 
 5. Add encrypted backups and restore.
 
 OUTPOST is a local knowledge and productivity workspace, not an offensive security tool.
+## Optional integrations (design review)
+
+OUTPOST's core stays dependency-free and offline-first. External projects are **not copied into the core**; they are separate, opt-in tools:
+
+| Project | Intended role | Integration decision |
+|---|---|---|
+| [Tookie-OSINT](https://github.com/Alfredredbird/tookie-osint) | Username-to-public-profile discovery | Optional network-dependent tool; its upstream project supports Termux. Keep scans explicit and user-initiated. |
+| [Claude-BugHunter](https://github.com/elementalsouls/Claude-BugHunter) | Security research methodology and reporting skills | Reference/knowledge pack only; it is a Claude Code skill bundle, not a standalone offline scanner. Use only on owned or explicitly authorized targets. |
+| [IPinfo CLI](https://github.com/ipinfo/cli) | IP/ASN intelligence | Optional external lookup; requires network access and has reduced functionality without an API token. |
+| [Pi-hole](https://github.com/pi-hole/pi-hole) | DNS filtering and network statistics | Connect to an already-running Pi-hole instance on the user's network; OUTPOST will not install or administer DNS services itself. |
+| [Nextcloud](https://github.com/nextcloud/server) | File sync and sharing | Keep as an external server option, not bundled into OUTPOST's lightweight Termux process. |
+| Reddit r/Piracy | Community-maintained reference material | Link to public resources only; do not scrape or redistribute copyrighted content. |
+
+These tools are not required to run OUTPOST. Network integrations must be clearly labelled and remain disabled until configured. No background scans or remote access are enabled by default.
+
