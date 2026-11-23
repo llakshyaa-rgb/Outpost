@@ -1,6 +1,6 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.3.1 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.3.2 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
@@ -10,9 +10,9 @@
 - **Kiwix library discovery:** finds local .zim archives. The reader itself is not bundled or launched yet.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
 - **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
-- **Termux diagnostics:** detects Termux, Python, Git and selected local commands. It does not install packages or run arbitrary shell commands.
+- **Termux diagnostics:** detects Termux, Python, Git and selected local commands, reports available storage, and can list locally installed packages from the dpkg database. It does not install packages or run arbitrary shell commands.
 - **Claude-BugHunter reference library:** import and search local Agent Skill files and supporting scripts. Imported scripts are stored as reference material and are never executed.
-- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates and a bounded text-transform pipeline.
+- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates and an expanded bounded text-transform pipeline (Base64, hex, URL, ROT13, binary, JSON, HTML, gzip, line operations and text statistics).
 - Notes, collections, bookmarks, IPv4/IPv6 calculations, and JSON backup export/import.
 
 ## Run on Android / Termux
