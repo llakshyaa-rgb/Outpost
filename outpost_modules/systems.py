@@ -102,6 +102,41 @@ def search_uplink(conn, query: str, limit: int=10):
             break
     return results
 
+
+def record_uplink_feedback(conn, query: str, chunk_id: int | None, helpful: bool, note: str=""):
+    ensure_uplink(conn)
+    query=str(query).strip()[:500]
+    note=str(note).strip()[:2000]
+    if not query: raise ValueError("Feedback needs the original search query")
+    if chunk_id is not None:
+        exists=conn.execute("SELECT 1 FROM uplink_chunks WHERE id=?",(int(chunk_id),)).fetchone()
+        if not exists: raise ValueError("The referenced passage no longer exists")
+    cur=conn.execute("INSERT INTO uplink_feedback(query,chunk_id,helpful,note,created) VALUES(?,?,?,?,?)",
+                     (query,int(chunk_id) if chunk_id is not None else None,1 if helpful else 0,note,time.time()))
+    conn.commit()
+    return int(cur.lastrowid)
+
+def evaluate_uplink_query(conn, query: str, expected_path: str, limit: int=10):
+    results=search_uplink(conn,query,limit)
+    expected=str(expected_path).casefold().strip()
+    matched=any(expected in str(x["path"]).casefold() for x in results) if expected else None
+    return {"query":query,"expected_path":expected_path,"top_k":len(results),"matched":matched,
+            "reciprocal_rank":next((1/(i+1) for i,x in enumerate(results) if expected and expected in str(x["path"]).casefold()),0 if expected else None),
+            "results":[{"path":x["path"],"title":x["title"],"rank":x["rank"]} for x in results]}
+
+def uplink_report(conn):
+    ensure_uplink(conn)
+    documents=conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+    chunks=conn.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]
+    feedback=conn.execute("SELECT COUNT(*),COALESCE(SUM(helpful),0) FROM uplink_feedback").fetchone()
+    sources=conn.execute("SELECT path,COUNT(*) passages FROM uplink_chunks GROUP BY path ORDER BY passages DESC LIMIT 20").fetchall()
+    recent=conn.execute("SELECT query,chunk_id,helpful,note,created FROM uplink_feedback ORDER BY created DESC LIMIT 50").fetchall()
+    return {"generated":time.time(),"documents":documents,"passages":chunks,
+            "feedback_count":feedback[0],"helpful_count":feedback[1],
+            "top_sources":[{"path":x[0],"passages":x[1]} for x in sources],
+            "recent_feedback":[{"query":x[0],"chunk_id":x[1],"helpful":bool(x[2]),"note":x[3],"created":x[4]} for x in recent]}
+
+
 def corpus_stats(conn, root: Path):
     counts={}
     total=0
