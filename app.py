@@ -19,6 +19,7 @@ LOCK = threading.RLock()
 
 def connect():
     c = sqlite3.connect(DB, timeout=10)
+    c.execute("PRAGMA foreign_keys=ON")
     c.row_factory = sqlite3.Row
     return c
 
@@ -121,12 +122,15 @@ class Handler(BaseHTTPRequestHandler):
             from urllib.parse import parse_qs
             q = parse_qs(u.query).get("q",[""])[0].strip()
             if not q: self.send_json([]); return
+            like="%"+q.replace("%","")+"%"
             with connect() as c:
-                try: rows=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,substr(d.content,1,260) snippet FROM documents_fts f JOIN documents d ON d.id=f.rowid WHERE documents_fts MATCH ? LIMIT 50",(q,))]
+                try:
+                    docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,substr(d.content,1,260) snippet,'file' kind FROM documents_fts f JOIN documents d ON d.id=f.rowid WHERE documents_fts MATCH ? LIMIT 40",(q,))]
                 except sqlite3.OperationalError:
-                    like="%"+q.replace("%","")+"%"
-                    rows=[dict(x) for x in c.execute("SELECT id,name,path,substr(content,1,260) snippet FROM documents WHERE name LIKE ? OR content LIKE ? LIMIT 50",(like,like))]
-            self.send_json(rows); return
+                    docs=[dict(x) for x in c.execute("SELECT id,name,path,substr(content,1,260) snippet,'file' kind FROM documents WHERE name LIKE ? OR content LIKE ? LIMIT 40",(like,like))]
+                notes=[dict(x) for x in c.execute("SELECT id,title name,'note' path,substr(body,1,260) snippet,'note' kind FROM notes WHERE title LIKE ? OR body LIKE ? LIMIT 30",(like,like))]
+                refs=[dict(x) for x in c.execute("SELECT id,title name,url path,substr(note,1,260) snippet,'bookmark' kind FROM bookmarks WHERE title LIKE ? OR note LIKE ? OR url LIKE ? LIMIT 30",(like,like,like))]
+            self.send_json(docs+notes+refs); return
         if u.path == "/":
             return self.serve_static("index.html")
         if u.path.startswith("/static/"):
@@ -147,6 +151,13 @@ class Handler(BaseHTTPRequestHandler):
             if not title or not body: self.send_json({"error":"Title and body are required"},400); return
             with connect() as c: cur=c.execute("INSERT INTO notes(title,body,created,updated) VALUES(?,?,?,?)",(title,body,now,now))
             self.send_json({"ok":True,"id":cur.lastrowid},201); return
+        if self.path == "/api/notes/update":
+            try: ident=int(data.get("id",0))
+            except (ValueError,TypeError): ident=0
+            title=str(data.get("title","")).strip()[:160]; body=str(data.get("body",""))[:50000]
+            if ident<1 or not title or not body: self.send_json({"error":"Valid note, title and body required"},400); return
+            with connect() as c: cur=c.execute("UPDATE notes SET title=?,body=?,updated=? WHERE id=?",(title,body,now,ident))
+            self.send_json({"ok":True,"updated":cur.rowcount>0}); return
         if self.path == "/api/collections":
             name=str(data.get("name","")).strip()[:100]
             if not name: self.send_json({"error":"Name required"},400); return
