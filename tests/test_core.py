@@ -40,6 +40,13 @@ class OutpostCoreTests(unittest.TestCase):
         target.write_text("offline", encoding="utf-8")
         self.assertEqual(app.managed_path(str(target)), target)
 
+    def test_managed_path_allows_outpost_zim_library(self):
+        zim_root = self.data / "zim"
+        zim_root.mkdir()
+        archive = zim_root / "offline.zim"
+        archive.write_bytes(b"ZIM")
+        self.assertEqual(app.managed_path(str(archive)), archive)
+
     def test_managed_path_rejects_outside_file(self):
         outside = self.base / "private.txt"
         outside.write_text("no", encoding="utf-8")
