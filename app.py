@@ -506,13 +506,17 @@ class Handler(BaseHTTPRequestHandler):
                     ORDER BY b.created DESC LIMIT 300""")]
             self.send_json(rows); return
         if u.path == "/api/uplink/status":
-            from outpost_modules.systems import ensure_uplink
-            with connect() as c:
-                ensure_uplink(c)
-                docs=c.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
-                chunks=c.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]
-                feedback=c.execute("SELECT COUNT(*) FROM uplink_feedback").fetchone()[0]
-            self.send_json({"documents":docs,"chunks":chunks,"feedback":feedback,"engine":"SQLite FTS5 BM25","local_only":True}); return
+            try:
+                from outpost_modules.systems import ensure_uplink
+                with LOCK, connect() as c:
+                    ensure_uplink(c)
+                    docs=c.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+                    chunks=c.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]
+                    feedback=c.execute("SELECT COUNT(*) FROM uplink_feedback").fetchone()[0]
+                self.send_json({"documents":docs,"chunks":chunks,"feedback":feedback,"engine":"SQLite FTS5 BM25","local_only":True})
+            except (sqlite3.Error, OSError) as e:
+                self.send_json({"error":"Uplink index unavailable: "+str(e)},503)
+            return
         if u.path == "/api/termux/toolbox":
             import shutil
             catalog=[
@@ -658,15 +662,24 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError,ValueError,RuntimeError) as e:
                 self.send_json({"error":str(e)},400); return
         if self.path == "/api/uplink/rebuild":
-            from outpost_modules.systems import rebuild_uplink
-            with LOCK, connect() as c: result=rebuild_uplink(c)
-            self.send_json({"ok":True,**result}); return
+            try:
+                from outpost_modules.systems import rebuild_uplink
+                with LOCK, connect() as c: result=rebuild_uplink(c)
+                self.send_json({"ok":True,**result})
+            except (sqlite3.Error, OSError, ValueError) as e:
+                self.send_json({"error":"Could not build Uplink index: "+str(e)},503)
+            return
         if self.path == "/api/uplink/search":
-            from outpost_modules.systems import search_uplink
-            query=str(data.get("query","")).strip()
-            if not query: self.send_json({"error":"Enter a search query"},400); return
-            with connect() as c: results=search_uplink(c,query,int(data.get("limit",10)))
-            self.send_json({"query":query,"results":results,"count":len(results),"source":"local indexed documents"}); return
+            try:
+                from outpost_modules.systems import search_uplink
+                query=str(data.get("query","")).strip()
+                if not query: raise ValueError("Enter a search query")
+                limit=max(1,min(int(data.get("limit",10)),30))
+                with LOCK, connect() as c: results=search_uplink(c,query,limit)
+                self.send_json({"query":query,"results":results,"count":len(results),"source":"local indexed documents"})
+            except (sqlite3.Error, OSError, ValueError) as e:
+                self.send_json({"error":str(e)},400)
+            return
         if self.path == "/api/security/tool":
             import hashlib, math, re, base64, binascii, io, zipfile, stat
             try:
