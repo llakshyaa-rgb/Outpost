@@ -7,7 +7,7 @@
 - **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename, copy files and bounded directory trees, move files/folders, delete and create ZIP archives; safe ZIP extraction; explicit roots only.
 - **Archive hygiene:** scan selected folders for byte-identical duplicates using SHA-256, with bounded scan sizes.
 - **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
-- **Kiwix + Compact Encyclopedia:** discovers local .zim archives and can launch an already-installed `kiwix-serve` on loopback. A separate streaming XML importer stores cleaned Wikipedia article text compressed in `data/wiki/wiki.db`, with local title/lead search and an in-app reader. A 10 GiB storage ceiling protects the device. Hand-picked raster illustrations can be imported from a local ZIP; most images/media are omitted.
+- **Kiwix JS + Compact Encyclopedia:** includes a one-time Termux installer that builds and installs the pinned official Kiwix JS PWA into `static/kiwix/`, including libzim WebAssembly and XZ/Zstandard decoders. After installation it reads arbitrary compatible local ZIM archives entirely from the device. Also discovers local .zim archives and retains the compact Wikipedia XML importer. A separate streaming XML importer stores cleaned Wikipedia article text compressed in `data/wiki/wiki.db`, with local title/lead search and an in-app reader. A 10 GiB storage ceiling protects the device. Hand-picked raster illustrations can be imported from a local ZIP; most images/media are omitted.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
 - **Uplink-style retrieval:** separate change-aware passage index with bounded overlapping chunks, SQLite FTS5 BM25 ranking, AND→OR fallback and source-path citations. No embeddings or model required; optional PDF, DOCX, XLSX and XLS extraction works when the relevant libraries are already installed.
 - **Termux-Tools reference:** detects Termux, Python, Git and selected commands, reports storage, lists locally installed packages and shows a local command catalogue with availability checks. Device-changing commands remain manual in Termux.
@@ -52,7 +52,7 @@ The JSON backup includes notes, collections and bookmarks. It does not include y
 - Core runtime makes no external API calls and uses no CDN, cloud account, analytics or remote fonts.
 - The app binds to `127.0.0.1` only.
 - Online OSINT, remote recon, web lookups, cloud integrations, remote source syncing and live network scanning are intentionally excluded for now.
-- The standard Kiwix JS PWA and libzim WASM reader are not bundled; an already-installed `kiwix-serve` can optionally serve a local ZIM on loopback. The compact Wikipedia XML importer is a separate reader and does not decode arbitrary ZIM archives.
+- The full Kiwix JS reader is installed by running `python scripts/install_kiwix.py` once in Termux. It downloads pinned upstream source/build dependencies during installation, builds locally, then removes the temporary source/build directory. The installed reader itself runs offline. `static/kiwix/` is generated device-local content and is not committed to Git.
 - Optional PDF/Office extraction works only if the relevant libraries are already installed. The base app requires no pip packages.
 
 ## Safety and resource limits
@@ -107,3 +107,17 @@ The Knowledge Search page now has a dedicated Uplink passage index. After indexi
 The Security Desk now includes the offline BugHunter review playbooks, automatic decoding candidates, and a Termux command reference with availability checks. These are native, dependency-light additions. OUTPOST deliberately does not execute Termux commands, imported scripts, exploit code or remote tests.
 
 **Integration note:** this is a native, selective feature integration, not a full merge of all upstream codebases. Kiwix JS's standard ZIM reader runtime remains the largest outstanding gap; see [INTEGRATIONS.md](INTEGRATIONS.md) for precise boundaries.
+
+
+## Full Kiwix JS reader bundle
+
+OUTPOST now includes `scripts/install_kiwix.py`. In Termux, run:
+
+```sh
+cd ~/Outpost
+python scripts/install_kiwix.py
+```
+
+The installer asks before making a one-time online download, fetches the official Kiwix JS source at a pinned commit, installs the temporary Node build dependencies, and creates a production PWA build under `static/kiwix/`. Temporary source and build dependencies are removed when the installer exits. The generated reader contains libzim WebAssembly and the XZ/Zstandard decoders required for standard ZIM archives. Once installed, launch it from Offline library; it does not require online services to read local archives.
+
+Requirements: Node.js 18.18+ and npm in Termux, and enough temporary storage for the source/build dependency install. The final reader is expected to remain comfortably below OUTPOST's 5 GB app/tools budget; the ZIM content archives are separate user data. The source revision and GPL-3.0 license are recorded in the installed reader folder.
