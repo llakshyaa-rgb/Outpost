@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 
 WIKI_DB_NAME = "wiki.db"
 MAX_SOURCE_BYTES = 80 * 1024**3
+MAX_WIKI_DB_BYTES = 10 * 1024**3
 IMAGE_HINTS = (
     "diagram", "map", "anatomy", "anatomical", "structure", "cross_section",
     "cross-section", "schematic", "circuit", "chart", "graph", "timeline",
@@ -117,6 +118,9 @@ def import_dump(source: str, db_path: str, progress=None):
                     with conn:
                         conn.executemany("INSERT OR REPLACE INTO articles(title,body,chars,lead,images,updated) VALUES(?,?,?,?,?,?)",batch)
                     batch=[]
+                    current=sum((Path(db_path).parent/(Path(db_path).name+suffix)).stat().st_size for suffix in ("","-wal") if (Path(db_path).parent/(Path(db_path).name+suffix)).exists())
+                    if current > MAX_WIKI_DB_BYTES:
+                        raise ValueError("Compact encyclopedia reached the 10 GiB storage ceiling; import stopped to protect device storage")
                     if progress: progress({"pages_seen":total,"articles_saved":kept})
             if batch:
                 with conn:
@@ -133,9 +137,8 @@ def import_dump(source: str, db_path: str, progress=None):
 def stats(db_path: str):
     p=Path(db_path)
     if not p.exists(): return {"ready":False,"articles":0,"size_bytes":0}
-    conn=sqlite3.connect(db_path)
+    conn=sqlite3.connect(db_path, timeout=30)
     try:
-        _schema(conn)
         count=conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
         meta=dict(conn.execute("SELECT key,value FROM meta"))
     finally: conn.close()
