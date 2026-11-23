@@ -16,7 +16,7 @@ MAX_ARCHIVE=120*1024*1024
 MAX_BUNDLE=180*1024*1024
 
 def main():
-    if DEST.joinpath("index.html").is_file():
+    if DEST.joinpath("www","index.html").is_file():
         print("Kiwix reader is already installed at",DEST)
         print("Delete static/kiwix only if you intentionally want to reinstall.")
         return 0
@@ -63,12 +63,13 @@ def main():
         subprocess.run(["npm","ci","--no-audit","--no-fund"],cwd=source,check=True)
         print("Building the production Kiwix JS reader…")
         subprocess.run(["npm","run","build-min"],cwd=source,check=True)
-        built=source/"dist"/"www"
-        if not (built/"index.html").is_file() or not (built/"js"/"bundle.min.js").is_file():
+        built=source/"dist"
+        if not (built/"www"/"index.html").is_file() or not (built/"www"/"js"/"bundle.min.js").is_file() or not (built/"service-worker.js").is_file():
             raise RuntimeError("Kiwix build did not produce the expected PWA entry files")
         size=sum(p.stat().st_size for p in built.rglob("*") if p.is_file())
         if size>MAX_BUNDLE: raise RuntimeError(f"Built reader is too large ({size} bytes); refusing to install")
-        # Keep the upstream standalone reader self-contained under /kiwix/.
+        # Preserve the upstream dist layout: /kiwix/www/ is the PWA, and the
+        # service worker is one directory above it so its precache URLs resolve.
         shutil.copytree(built,DEST)
         license_src=source/"LICENSE-GPLv3.txt"
         if license_src.is_file(): shutil.copy2(license_src,DEST/"LICENSE-GPLv3.txt")
@@ -79,7 +80,7 @@ def main():
             "This directory is the upstream production build. OUTPOST tightens the entry-page CSP to local-only resource origins.\n",
             encoding="utf-8")
         # Force local-only resource loading and remove root-level manifest URL.
-        index=DEST/"index.html"
+        index=DEST/"www"/"index.html"
         html=index.read_text(encoding="utf-8")
         import re
         html=re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>', 
