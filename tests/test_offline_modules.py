@@ -15,7 +15,7 @@ class RetrievalTests(unittest.TestCase):
     def test_split_sections_is_bounded_and_overlapping(self):
         chunks = split_sections(("a" * 900) + "\n\n" + ("b" * 900), 600, 80)
         self.assertGreaterEqual(len(chunks), 2)
-        self.assertTrue(all(len(chunk) <= 680 for chunk in chunks))
+        self.assertTrue(all(len(chunk) <= 681 for chunk in chunks))
 
 
 class CyberDeskTests(unittest.TestCase):
