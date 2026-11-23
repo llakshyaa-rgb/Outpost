@@ -160,7 +160,8 @@ def index_files():
         rows = c.execute("SELECT id,path FROM documents").fetchall()
         for row in rows:
             path = Path(row["path"])
-            if any(root == path or root in path.parents for root in roots) and str(path) not in seen and not path.exists():
+            inside = any(root == path or root in path.parents for root in roots)
+            if not inside or not path.exists():
                 c.execute("DELETE FROM documents WHERE id=?", (row["id"],))
                 stale += 1
     return {"indexed":count,"skipped":skipped,"removed":stale,"roots":[str(x) for x in roots]}
@@ -695,17 +696,20 @@ class Handler(BaseHTTPRequestHandler):
                         if info.is_dir(): continue
                         mode=(info.external_attr>>16)&0xFFFF
                         if stat.S_ISLNK(mode): skipped+=1; continue
-                        rel=Path(info.filename)
+                        normalized=info.filename.replace("\\\\","/")
+                        rel=Path(normalized)
                         if rel.is_absolute() or ".." in rel.parts or rel.suffix.lower() not in allowed: skipped+=1; continue
                         if info.file_size>5_000_000: skipped+=1; continue
+                        if info.compress_size and info.file_size/max(1,info.compress_size)>200: skipped+=1; continue
                         total+=info.file_size
                         if total>50_000_000: raise ValueError("Expanded archive exceeds 50 MB")
                         dest=(target/rel).resolve()
-                        if target not in dest.parents: skipped+=1; continue
+                        if target not in dest.parents or dest.exists(): skipped+=1; continue
                         dest.parent.mkdir(parents=True,exist_ok=True)
                         with z.open(info) as src: content=src.read(5_000_001)
                         if len(content)>5_000_000: skipped+=1; continue
-                        dest.write_bytes(content); count+=1
+                        with dest.open("xb") as stream: stream.write(content)
+                        count+=1
                 self.send_json({"ok":True,"imported":count,"skipped":skipped,"catalog":knowledge_catalog()},201); return
             except (ValueError,OSError,zipfile.BadZipFile,base64.binascii.Error) as e:
                 self.send_json({"error":str(e)},400); return
@@ -809,9 +813,17 @@ class Handler(BaseHTTPRequestHandler):
             roots=data.get("index_roots",[])
             if not isinstance(roots,list) or len(roots)>20: self.send_json({"error":"Provide up to 20 folder paths"},400); return
             clean=[]
-            for r in roots:
-                p=Path(str(r)).expanduser().resolve()
-                if p.exists() and p.is_dir(): clean.append(str(p))
+            for raw in roots:
+                if not isinstance(raw,str) or not raw.strip(): continue
+                candidate=Path(raw).expanduser()
+                probe=candidate; unsafe=False
+                while True:
+                    if probe.is_symlink(): unsafe=True; break
+                    if probe.parent==probe: break
+                    probe=probe.parent
+                if unsafe: continue
+                p=candidate.resolve()
+                if p.is_dir() and p not in clean: clean.append(str(p))
             save_config({"index_roots":clean})
             self.send_json({"ok":True,"index_roots":clean}); return
         self.send_json({"error":"Not found"},404)
