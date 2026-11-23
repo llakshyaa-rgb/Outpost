@@ -111,6 +111,12 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/collections":
             with connect() as c: rows=[dict(x) for x in c.execute("SELECT * FROM collections ORDER BY name")]
             self.send_json(rows); return
+        if u.path == "/api/bookmarks":
+            with connect() as c:
+                rows=[dict(x) for x in c.execute("""SELECT b.*, c.name AS collection_name
+                    FROM bookmarks b LEFT JOIN collections c ON c.id=b.collection_id
+                    ORDER BY b.created DESC LIMIT 300""")]
+            self.send_json(rows); return
         if u.path == "/api/search":
             from urllib.parse import parse_qs
             q = parse_qs(u.query).get("q",[""])[0].strip()
@@ -152,6 +158,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/bookmarks":
             title=str(data.get("title","")).strip()[:200]; url=str(data.get("url","")).strip()[:1000]
             if not title: self.send_json({"error":"Title required"},400); return
+            if url and not url.startswith(("https://","http://")):
+                self.send_json({"error":"URL must start with http:// or https://"},400); return
             cid=data.get("collection_id")
             with connect() as c: cur=c.execute("INSERT INTO bookmarks(collection_id,title,url,note,created) VALUES(?,?,?,?,?)",(cid,title,url,str(data.get("note",""))[:2000],now))
             self.send_json({"ok":True,"id":cur.lastrowid},201); return
