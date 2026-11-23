@@ -255,7 +255,7 @@ class Handler(BaseHTTPRequestHandler):
               {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only Termux environment and installed-command detection; no shell commands are run by the dashboard."},
               {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"OUTPOST search is local and indexes selected roots; citation-style source paths are shown."},
               {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"partial" if bug_count else "waiting","count":bug_count,"detail":"Local Agent Skills and support files can be imported and searched; scripts are never executed."},
-              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"Static file triage, ZIP audit, hashes, entropy, strings, classical ciphers and local transforms are available."}
+              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"Static file triage, ZIP audit, hashes, entropy, strings, IOC extraction, JWT decoding, classical ciphers and local transforms are available."}
             ]
             self.send_json(modules); return
         if u.path == "/api/system":
@@ -609,11 +609,14 @@ class Handler(BaseHTTPRequestHandler):
                     if not name.lower().endswith(".zip"): name+=".zip"
                     target=(parent/name).resolve()
                     if target.parent!=parent or target.exists(): raise ValueError("Archive name is invalid or already exists")
-                    resolved=[]
+                    resolved=[]; total_size=0
                     for raw in paths:
                         p=managed_path(str(raw))
                         if not p.is_file(): raise ValueError("Only files can be added to a ZIP")
-                        if p.stat().st_size>100_000_000: raise ValueError("A selected file exceeds 100 MB")
+                        size=p.stat().st_size
+                        if size>100_000_000: raise ValueError("A selected file exceeds 100 MB")
+                        total_size+=size
+                        if total_size>300_000_000: raise ValueError("Selected files exceed the 300 MB archive limit")
                         resolved.append(p)
                     with zipfile.ZipFile(target,"x",compression=zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
                         for p in resolved: archive.write(p,p.name)
