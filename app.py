@@ -112,6 +112,49 @@ def payload(handler):
     raw = handler.rfile.read(n) if n else b"{}"
     return json.loads(raw.decode("utf-8"))
 
+
+def managed_roots():
+    roots=[]
+    for raw in load_config().get("index_roots", []):
+        try:
+            p=Path(raw).expanduser().resolve()
+            if p.is_dir(): roots.append(p)
+        except OSError: pass
+    k=(ROOT/"knowledge").resolve()
+    if k.is_dir(): roots.append(k)
+    return list(dict.fromkeys(roots))
+
+def managed_path(raw, allow_root=False):
+    if not isinstance(raw,str) or not raw.strip(): raise ValueError("A file path is required")
+    p=Path(raw).expanduser().resolve()
+    roots=managed_roots()
+    if not any((p==r if allow_root else p!=r) or r in p.parents for r in roots):
+        raise ValueError("Path is outside OUTPOST's configured folders")
+    return p
+
+def knowledge_catalog():
+    base=ROOT/"knowledge"
+    items=[]
+    if not base.is_dir(): return items
+    for p in base.rglob("*"):
+        if not p.is_file() or p.is_symlink() or p.suffix.lower() not in {".md",".txt",".rst",".yaml",".yml",".json"}: continue
+        try:
+            if p.stat().st_size>2_000_000: continue
+            raw=p.read_text(encoding="utf-8",errors="replace")
+            title=p.stem.replace("-"," ").replace("_"," ").title()
+            description=""
+            if p.name.upper()=="SKILL.MD":
+                for line in raw.splitlines()[:40]:
+                    if line.lower().startswith("name:"): title=line.split(":",1)[1].strip() or title
+                    if line.lower().startswith("description:"): description=line.split(":",1)[1].strip()
+            else:
+                for line in raw.splitlines():
+                    if line.startswith("# "): title=line[2:].strip(); break
+                description=next((x.strip() for x in raw.splitlines() if x.strip() and not x.startswith("#")), "")[:220]
+            items.append({"name":p.name,"title":title,"description":description,"path":str(p),"size":p.stat().st_size,"skill":p.name.upper()=="SKILL.MD"})
+        except OSError: pass
+    return items
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "OUTPOST/0.2"
     def log_message(self, *_): pass
@@ -155,6 +198,23 @@ class Handler(BaseHTTPRequestHandler):
             termux=os.environ.get("PREFIX","").startswith("/data/data/com.termux") or "com.termux" in os.environ.get("HOME","")
             commands=["pkg","termux-info","termux-setup-storage","termux-open-url","git","python"]
             self.send_json({"termux":termux,"platform":platform.platform(),"machine":platform.machine(),"python":sys.version.split()[0],"commands":{x:bool(shutil.which(x)) for x in commands},"storage":str(Path.home()/"storage/shared") if (Path.home()/"storage/shared").exists() else None}); return
+        if u.path == "/api/knowledge/catalog":
+            self.send_json(knowledge_catalog()); return
+        if u.path == "/api/file/download":
+            from urllib.parse import parse_qs
+            raw=parse_qs(u.query).get("path",[""])[0]
+            try:
+                p=managed_path(raw)
+                if not p.is_file(): raise ValueError("File not found")
+                st=p.stat()
+                if st.st_size>100_000_000: raise ValueError("Download exceeds the 100 MB safety limit")
+                data=p.read_bytes()
+                self.send_response(200); self.send_header("Content-Type","application/octet-stream")
+                self.send_header("Content-Disposition","attachment; filename*=UTF-8''"+__import__("urllib.parse",fromlist=["quote"]).quote(p.name))
+                self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store")
+                self.end_headers(); self.wfile.write(data)
+            except (OSError,ValueError) as e: self.send_json({"error":str(e)},400)
+            return
         if u.path == "/api/files":
             roots=[Path(x).expanduser().resolve() for x in load_config().get("index_roots",[]) if Path(x).expanduser().exists()]
             roots.append((ROOT/"knowledge").resolve())
@@ -231,6 +291,87 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/file/action":
+            import base64, shutil
+            op=str(data.get("operation",""))
+            try:
+                if op=="mkdir":
+                    parent=managed_path(str(data.get("parent","")),allow_root=True)
+                    name=Path(str(data.get("name",""))).name
+                    if not name or name in {".",".."}: raise ValueError("A valid folder name is required")
+                    target=(parent/name).resolve()
+                    if target.parent!=parent: raise ValueError("Invalid folder name")
+                    target.mkdir(exist_ok=False)
+                    self.send_json({"ok":True,"path":str(target)},201); return
+                if op=="upload":
+                    parent=managed_path(str(data.get("parent","")),allow_root=True)
+                    name=Path(str(data.get("name",""))).name
+                    encoded=str(data.get("content_base64",""))
+                    if not name or name in {".",".."}: raise ValueError("A valid file name is required")
+                    raw=base64.b64decode(encoded,validate=True)
+                    if len(raw)>5_000_000: raise ValueError("Upload exceeds the 5 MB limit")
+                    target=(parent/name).resolve()
+                    if target.parent!=parent: raise ValueError("Invalid file name")
+                    if target.exists(): raise ValueError("A file with that name already exists")
+                    target.write_bytes(raw)
+                    self.send_json({"ok":True,"path":str(target),"size":len(raw)},201); return
+                if op=="rename":
+                    source=managed_path(str(data.get("path","")))
+                    name=Path(str(data.get("name",""))).name
+                    if not name or name in {".",".."}: raise ValueError("A valid new name is required")
+                    target=(source.parent/name).resolve()
+                    if target.parent!=source.parent: raise ValueError("Invalid new name")
+                    if target.exists(): raise ValueError("Destination already exists")
+                    source.rename(target)
+                    self.send_json({"ok":True,"path":str(target)}); return
+                if op=="delete":
+                    target=managed_path(str(data.get("path","")))
+                    if target.is_dir():
+                        target.rmdir()
+                    else: target.unlink()
+                    self.send_json({"ok":True}); return
+                if op=="copy":
+                    source=managed_path(str(data.get("path","")))
+                    parent=managed_path(str(data.get("parent","")),allow_root=True)
+                    name=Path(str(data.get("name") or source.name)).name
+                    target=(parent/name).resolve()
+                    if target.parent!=parent or target.exists(): raise ValueError("Invalid or existing destination")
+                    if source.is_dir(): raise ValueError("Folder copying is not supported")
+                    shutil.copy2(source,target)
+                    self.send_json({"ok":True,"path":str(target)}); return
+                raise ValueError("Unsupported file operation")
+            except (OSError,ValueError,base64.binascii.Error) as e:
+                self.send_json({"error":str(e)},400); return
+        if self.path == "/api/knowledge/import":
+            import base64, zipfile, io, stat
+            try:
+                raw=base64.b64decode(str(data.get("archive_base64","")),validate=True)
+                if len(raw)>7_000_000: raise ValueError("Knowledge archive exceeds the 7 MB upload limit")
+                target=(ROOT/"knowledge"/"imported").resolve()
+                target.mkdir(parents=True,exist_ok=True)
+                allowed={".md",".txt",".rst",".yaml",".yml",".json",".toml"}
+                count=0; total=0; skipped=0
+                with zipfile.ZipFile(io.BytesIO(raw)) as z:
+                    entries=z.infolist()
+                    if len(entries)>250: raise ValueError("Archive contains too many entries")
+                    for info in entries:
+                        if info.is_dir(): continue
+                        mode=(info.external_attr>>16)&0xFFFF
+                        if stat.S_ISLNK(mode): skipped+=1; continue
+                        rel=Path(info.filename)
+                        if rel.is_absolute() or ".." in rel.parts or rel.suffix.lower() not in allowed: skipped+=1; continue
+                        if info.file_size>2_000_000: skipped+=1; continue
+                        total+=info.file_size
+                        if total>25_000_000: raise ValueError("Expanded archive exceeds 25 MB")
+                        dest=(target/rel).resolve()
+                        if target not in dest.parents: skipped+=1; continue
+                        dest.parent.mkdir(parents=True,exist_ok=True)
+                        with z.open(info) as src: content=src.read(2_000_001)
+                        if len(content)>2_000_000: skipped+=1; continue
+                        dest.write_bytes(content); count+=1
+                self.send_json({"ok":True,"imported":count,"skipped":skipped,"catalog":knowledge_catalog()},201); return
+            except (ValueError,OSError,zipfile.BadZipFile,base64.binascii.Error) as e:
+                self.send_json({"error":str(e)},400); return
         if self.path == "/api/file/analyze":
             raw=str(data.get("path",""))
             try:
