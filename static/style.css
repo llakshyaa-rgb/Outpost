@@ -2,3 +2,5 @@
 .import-label{display:inline-flex;align-items:center;cursor:pointer}.backup-actions{margin-top:18px}.item a{color:var(--accent);overflow-wrap:anywhere}
 
 .ip-results{margin-top:18px;border-top:1px solid var(--line)}.ip-results .statusline{gap:12px}.ip-results .statusline b{text-align:right;overflow-wrap:anywhere}
+
+.file-pick{display:block;width:100%;text-align:left;font-weight:650}.file-row small{display:block;overflow-wrap:anywhere}.hash{display:block;overflow-wrap:anywhere;white-space:normal}.item pre{max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel2);padding:12px;border-radius:8px}.module-status{float:right;color:var(--green);font:10px ui-monospace,monospace;text-transform:uppercase}.item a{display:inline-block;margin-top:8px}.file-row{padding:12px 0}
