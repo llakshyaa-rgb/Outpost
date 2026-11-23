@@ -63,6 +63,6 @@ The JSON backup includes notes, collections and bookmarks. It does not include y
 
 ## Validation
 
-Repository wiring has been updated, but runtime testing on the target Android/Termux phone is still required. In particular, test shared-storage permissions, SQLite FTS5, optional document extractors, uploads/downloads and large-folder performance.
+Run local regression tests with `python -m unittest discover -s tests -v`. They cover configured-root access, symlink rejection, indexing and removal of unselected roots. Runtime testing on the target Android/Termux phone is still required. In particular, test shared-storage permissions, SQLite FTS5, optional document extractors, uploads/downloads and large-folder performance.
 
 See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstream license notes.
