@@ -499,7 +499,7 @@ class Handler(BaseHTTPRequestHandler):
                         if len(doc)>200000: raise ValueError("Pipeline output limit exceeded")
                     self.send_json({"result":doc}); return
                 raise ValueError("Unknown security tool")
-            except (ValueError, OSError, binascii.Error, IndexError, KeyError) as e:
+            except (ValueError, OSError, binascii.Error, zipfile.BadZipFile, IndexError, KeyError) as e:
                 self.send_json({"error":str(e)},400); return
         if self.path == "/api/file/action":
             import base64, shutil
