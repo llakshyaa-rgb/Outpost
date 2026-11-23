@@ -1,13 +1,13 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.6.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.7.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
 - **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename, copy files and bounded directory trees, move files/folders, delete and create ZIP archives; safe ZIP extraction; explicit roots only.
 - **Archive hygiene:** scan selected folders for byte-identical duplicates using SHA-256, with bounded scan sizes.
 - **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
-- **Kiwix library:** discovers local .zim archives, provides a small curated download catalog, and can launch an already-installed `kiwix-serve` bound strictly to `127.0.0.1`. ZIM downloads are user-initiated; no content is bundled or fetched automatically.
+- **Kiwix + Compact Encyclopedia:** discovers local .zim archives and can launch an already-installed `kiwix-serve` on loopback. A separate streaming XML importer stores cleaned Wikipedia article text compressed in `data/wiki/wiki.db`, with local title/lead search and an in-app reader. A 10 GiB storage ceiling protects the device. Hand-picked raster illustrations can be imported from a local ZIP; most images/media are omitted.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
 - **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
 - **Termux diagnostics:** detects Termux, Python, Git and selected local commands, reports available storage, and can list locally installed packages from the dpkg database. It does not install packages or run arbitrary shell commands.
@@ -40,10 +40,12 @@ Then add only the folders you want OUTPOST to access in Settings. It never scans
 - SQLite database: `data/outpost.db`
 - Settings: `data/config.json`
 - ZIM archives: `data/zim/`
+- Compact encyclopedia: `data/wiki/wiki.db`
+- Curated encyclopedia images: `data/wiki/images/`
 - Offline knowledge: `knowledge/`
 - Imported knowledge packs: `knowledge/imported/`
 
-The JSON backup includes notes, collections and bookmarks. It does not include your files, ZIM archives, or imported knowledge packs; back up the `data/` and `knowledge/` folders separately.
+The JSON backup includes notes, collections and bookmarks. It does not include your files, ZIM archives, encyclopedia database, curated images, or imported knowledge packs; back up the `data/` and `knowledge/` folders separately.
 
 ## Offline-only boundary
 
@@ -63,7 +65,7 @@ The JSON backup includes notes, collections and bookmarks. It does not include y
 
 ## Validation
 
-Run local regression tests with `python -m unittest discover -s tests -v`. They cover configured-root access, symlink rejection, indexing and removal of unselected roots. Runtime testing on the target Android/Termux phone is still required. In particular, test shared-storage permissions, SQLite FTS5, optional document extractors, uploads/downloads and large-folder performance.
+Run local regression tests with `python -m unittest discover -s tests -v`. They cover configured-root access, symlink rejection, indexing and removal of unselected roots. Runtime testing on the target Android/Termux phone is still required. The Wikipedia importer is new and has not yet been validated against a complete Wikimedia dump on-device; its final database size and total article coverage must be measured during a real import. In particular, test shared-storage permissions, SQLite FTS5, optional document extractors, uploads/downloads and large-folder performance.
 
 See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstream license notes.
 
@@ -85,3 +87,14 @@ Core runtime remains loopback-only and makes no external network requests. Optio
 The Offline library page now includes a curated ZIM catalog. These are optional downloads; OUTPOST never fetches them automatically. Download a selected archive, move the resulting `.zim` file into `data/zim/`, then press **Scan archives**. The suggested broad-coverage set is Simple English Wikipedia (full text, no images), WikiMed (no images), and English Wikipedia Top (mini summaries). Astronomy is an optional larger subject pack. The catalog sizes are approximate and can change when Kiwix republishes an archive. The full English Wikipedia is far larger than 5 GB; Kiwix's `mini`, `nopic`, and `maxi` editions have substantially different coverage and size. See the [Kiwix FAQ](https://get.kiwix.org/en/faq/) for edition definitions.
 
 ZIM archives are user data and are excluded from Git. Keep only the packs you actually need; the app and reader do not need to be duplicated inside each archive.
+
+
+## Compact encyclopedia workflow (0.7.0)
+
+1. Download a Wikimedia **pages-articles** XML dump (not a full revision-history dump) separately. The file may be plain `.xml`, `.xml.bz2`, or `.xml.gz`.
+2. Keep the dump in a folder you explicitly added under Settings. OUTPOST never downloads it for you.
+3. In Offline library, enter the full local path and start the import. It streams pages in batches, keeps main-namespace article text, removes most templates/markup and media, and stores compressed article bodies in a separate SQLite database.
+4. Search uses article titles and introductions to stay compact. Open an article to read its stored body.
+5. To retain selected illustrations, prepare your own ZIP of chosen JPG/PNG/WebP/GIF images and import it in the same panel. OUTPOST accepts at most 120 images / 150 MB total and rejects SVG/script formats. Only matching article image references are shown.
+
+The 10 GiB cap is a safety ceiling, **not a promise that all English Wikipedia article text will fit**. The import result on your device determines coverage and actual size. The source dump and resulting database coexist during import, so ensure ample free storage before starting. The current importer is an initial practical pipeline; test it on a small XML sample before attempting a multi-gigabyte dump.
