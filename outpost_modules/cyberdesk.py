@@ -54,7 +54,16 @@ def pe_header(raw: bytes) -> dict:
     machine,sections,timestamp,symptr,symbols,opt_size,flags=struct.unpack_from("<HHIIIHH",raw,offset+4)
     machine_name={0x14c:"x86",0x8664:"x86-64",0x1c0:"ARM",0xaa64:"ARM64"}.get(machine,f"0x{machine:04x}")
     magic=struct.unpack_from("<H",raw,offset+24)[0] if opt_size>=2 and len(raw)>=offset+26 else 0
-    return {"format":"PE","machine":machine_name,"sections":sections,"timestamp":timestamp,"optional_header":"PE32+" if magic==0x20b else "PE32" if magic==0x10b else "unknown","characteristics":hex(flags),"header_offset":offset}
+    section_rows=[]
+    table=offset+24+opt_size
+    for index in range(min(sections,96)):
+        pos=table+index*40
+        if pos+40>len(raw): break
+        name=raw[pos:pos+8].split(bytes([0]),1)[0].decode("ascii","replace")
+        virtual_size,virtual_address,raw_size,raw_offset=struct.unpack_from("<IIII",raw,pos+8)
+        characteristics=struct.unpack_from("<I",raw,pos+36)[0]
+        section_rows.append({"name":name,"virtual_size":virtual_size,"virtual_address":hex(virtual_address),"raw_size":raw_size,"raw_offset":raw_offset,"characteristics":hex(characteristics)})
+    return {"format":"PE","machine":machine_name,"sections":sections,"section_table":section_rows,"timestamp":timestamp,"optional_header":"PE32+" if magic==0x20b else "PE32" if magic==0x10b else "unknown","characteristics":hex(flags),"header_offset":offset}
 
 def carve(raw: bytes, limit: int = 40) -> list[dict]:
     found=[]
@@ -67,23 +76,75 @@ def carve(raw: bytes, limit: int = 40) -> list[dict]:
             start=pos+1
     return sorted(found,key=lambda x:x["offset"])[:limit]
 
+def _packet_summary(frame: bytes, link_type: int) -> dict:
+    result={"captured_bytes":len(frame)}
+    pos=0
+    ethertype=None
+    if link_type==1 and len(frame)>=14:
+        ethertype=struct.unpack_from("!H",frame,12)[0]
+        pos=14
+        depth=0
+        while ethertype in (0x8100,0x88a8) and depth<2 and len(frame)>=pos+4:
+            ethertype=struct.unpack_from("!H",frame,pos+2)[0]
+            pos+=4
+            depth+=1
+        result["link"]="Ethernet"
+    elif link_type==101:
+        result["link"]="Raw IP"
+        ethertype=0x0800 if frame and frame[0]>>4==4 else 0x86dd if frame and frame[0]>>4==6 else None
+    elif link_type==113 and len(frame)>=16:
+        result["link"]="Linux cooked"
+        ethertype=struct.unpack_from("!H",frame,14)[0]
+        pos=16
+    else:
+        result["link_type"]=link_type
+        return result
+    if ethertype==0x0800 and len(frame)>=pos+20:
+        ihl=(frame[pos]&15)*4
+        if frame[pos]>>4!=4 or ihl<20 or len(frame)<pos+ihl: return result
+        proto=frame[pos+9]
+        result.update({"network":"IPv4","source":".".join(map(str,frame[pos+12:pos+16])),"destination":".".join(map(str,frame[pos+16:pos+20]))})
+        pos+=ihl
+    elif ethertype==0x86dd and len(frame)>=pos+40:
+        proto=frame[pos+6]
+        import ipaddress
+        result.update({"network":"IPv6","source":str(ipaddress.IPv6Address(frame[pos+8:pos+24])),"destination":str(ipaddress.IPv6Address(frame[pos+24:pos+40]))})
+        pos+=40
+    else:
+        result["ethertype"]=hex(ethertype) if ethertype is not None else None
+        return result
+    result["protocol"]={1:"ICMP",2:"IGMP",6:"TCP",17:"UDP",58:"ICMPv6"}.get(proto,f"IP protocol {proto}")
+    if proto in (6,17) and len(frame)>=pos+4:
+        result["source_port"],result["destination_port"]=struct.unpack_from("!HH",frame,pos)
+        if proto==6 and len(frame)>=pos+14: result["tcp_flags"]=hex(frame[pos+13])
+    return result
+
+
 def pcap_summary(raw: bytes) -> dict:
-    if raw.startswith(b"\x0a\x0d\x0d\x0a"):
-        return {"format":"PCAPNG","note":"Section Header Block detected; packet dissection is not enabled in the lightweight core."}
+    if raw.startswith(bytes.fromhex("0a0d0d0a")):
+        return {"format":"PCAPNG","note":"PCAPNG section header detected. Full block decoding is not enabled in the lightweight core."}
     formats={
-        b"\xd4\xc3\xb2\xa1":("<","microseconds"),b"\xa1\xb2\xc3\xd4":(">","microseconds"),
-        b"\x4d\x3c\xb2\xa1":("<","nanoseconds"),b"\xa1\xb2\x3c\x4d":(">","nanoseconds")}
+        bytes.fromhex("d4c3b2a1"):("<","microseconds"),bytes.fromhex("a1b2c3d4"):(">","microseconds"),
+        bytes.fromhex("4d3cb2a1"):("<","nanoseconds"),bytes.fromhex("a1b23c4d"):(">","nanoseconds")}
     if len(raw)<24 or raw[:4] not in formats: raise ValueError("Not a supported classic PCAP capture")
     endian,resolution=formats[raw[:4]]
     major,minor,zone,sig,snap,network=struct.unpack_from(endian+"HHiIII",raw,4)
     pos,packets,truncated=24,0,False
+    samples=[]
     while pos+16<=len(raw) and packets<1_000_000:
-        sec,usec,incl,orig=struct.unpack_from(endian+"IIII",raw,pos)
-        if incl>snap or incl>len(raw)-pos-16: truncated=True; break
-        pos+=16+incl; packets+=1
+        sec,fraction,incl,orig=struct.unpack_from(endian+"IIII",raw,pos)
+        if incl>snap or incl>len(raw)-pos-16:
+            truncated=True
+            break
+        frame=raw[pos+16:pos+16+incl]
+        if len(samples)<100:
+            sample=_packet_summary(frame,network)
+            sample.update({"number":packets+1,"captured_length":incl,"original_length":orig,"timestamp_seconds":sec,"timestamp_fraction":fraction})
+            samples.append(sample)
+        pos+=16+incl
+        packets+=1
     if pos<len(raw): truncated=True
-    return {"format":"PCAP","version":f"{major}.{minor}","timestamp_resolution":resolution,"snaplen":snap,"link_type":network,"packets":packets,"truncated_or_trailing_data":truncated}
-
+    return {"format":"PCAP","version":f"{major}.{minor}","timestamp_resolution":resolution,"snaplen":snap,"link_type":network,"packets":packets,"packet_samples":samples,"samples_truncated":packets>len(samples),"truncated_or_trailing_data":truncated}
 def analyze(mode: str, raw: bytes, text: str = "") -> dict:
     if len(raw)>20_000_000: raise ValueError("Analysis input exceeds 20 MB")
     if mode=="strings": return {"strings":strings(raw),"total_bytes":len(raw)}
