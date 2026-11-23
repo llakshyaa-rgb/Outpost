@@ -13,8 +13,9 @@ DATA.mkdir(exist_ok=True)
 DB = DATA / "outpost.db"
 CONFIG = DATA / "config.json"
 MAX_BODY = 8_000_000
-MAX_FILE = 1_000_000
+MAX_FILE = 5_000_000
 TEXT_EXT = {".txt",".md",".markdown",".json",".csv",".py",".js",".ts",".tsx",".jsx",".html",".css",".yml",".yaml",".toml",".ini",".cfg",".log",".xml",".sh",".sql"}
+DOC_EXT = {".pdf",".docx",".xlsx",".xls"}
 LOCK = threading.RLock()
 
 def connect():
@@ -60,6 +61,53 @@ def load_config():
 def save_config(cfg):
     CONFIG.write_text(json.dumps(cfg, indent=2))
 
+def extract_document(p):
+    ext=p.suffix.lower()
+    if ext in TEXT_EXT:
+        return p.read_text(encoding="utf-8",errors="replace")
+    if ext==".pdf":
+        try:
+            from pypdf import PdfReader
+            reader=PdfReader(str(p))
+            return "\n".join((page.extract_text() or "") for page in reader.pages[:250])
+        except ImportError:
+            return ""
+    if ext==".docx":
+        try:
+            from docx import Document
+            doc=Document(str(p))
+            return "\n".join(x.text for x in doc.paragraphs)
+        except ImportError:
+            return ""
+    if ext==".xlsx":
+        try:
+            from openpyxl import load_workbook
+            wb=load_workbook(str(p),read_only=True,data_only=True)
+            out=[]
+            for ws in wb.worksheets[:30]:
+                out.append("SHEET: "+ws.title)
+                for row in ws.iter_rows(max_row=2000,values_only=True):
+                    vals=[str(v) for v in row if v is not None]
+                    if vals: out.append(" | ".join(vals))
+            wb.close()
+            return "\n".join(out)
+        except ImportError:
+            return ""
+    if ext==".xls":
+        try:
+            import xlrd
+            wb=xlrd.open_workbook(str(p),on_demand=True)
+            out=[]
+            for ws in wb.sheets():
+                out.append("SHEET: "+ws.name)
+                for row in range(min(ws.nrows,2000)):
+                    vals=[str(v) for v in ws.row_values(row) if v not in ("",None)]
+                    if vals: out.append(" | ".join(vals))
+            return "\n".join(out)
+        except ImportError:
+            return ""
+    return ""
+
 def index_files():
     cfg = load_config()
     roots = []
@@ -80,14 +128,17 @@ def index_files():
                     if root not in resolved.parents or not resolved.is_file():
                         skipped += 1
                         continue
-                    if resolved.suffix.lower() not in TEXT_EXT:
+                    if resolved.suffix.lower() not in TEXT_EXT | DOC_EXT:
                         skipped += 1
                         continue
                     st = resolved.stat()
                     if st.st_size > MAX_FILE:
                         skipped += 1
                         continue
-                    content = resolved.read_text(encoding="utf-8", errors="replace")
+                    content = extract_document(resolved)
+                    if not content.strip():
+                        skipped += 1
+                        continue
                     with LOCK, connect() as c:
                         c.execute("""INSERT INTO documents(path,name,content,size,modified,indexed) VALUES(?,?,?,?,?,?)
                         ON CONFLICT(path) DO UPDATE SET name=excluded.name,content=excluded.content,size=excluded.size,modified=excluded.modified,indexed=excluded.indexed""",
