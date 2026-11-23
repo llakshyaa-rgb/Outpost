@@ -160,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
                 net=interface.network
                 hosts=list(net.hosts()) if net.num_addresses<=2 else None
                 first=str(next(net.hosts(),net.network_address))
-                last=str(list(net.hosts())[-1]) if net.num_addresses<=4096 else str(net.broadcast_address if net.version==4 else net[-1])
+                last=str(list(net.hosts())[-1]) if net.num_addresses<=4096 else str(net[-2] if net.version==4 and net.prefixlen<31 else net[-1])
                 result={"input":raw,"version":net.version,"address":str(interface.ip),"prefix":net.prefixlen,"network":str(net.network_address),"broadcast":str(net.broadcast_address) if net.version==4 else None,"netmask":str(net.netmask),"hostmask":str(net.hostmask),"total_addresses":net.num_addresses,"first_host":first,"last_host":last,"is_private":interface.ip.is_private,"is_global":interface.ip.is_global,"is_loopback":interface.ip.is_loopback,"is_link_local":interface.ip.is_link_local,"is_multicast":interface.ip.is_multicast}
                 self.send_json(result); return
             except ValueError as e:
