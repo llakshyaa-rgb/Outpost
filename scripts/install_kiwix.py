@@ -76,7 +76,7 @@ def main():
             "Kiwix JS upstream: https://github.com/kiwix/kiwix-js\n"
             f"Pinned source commit: {COMMIT}\n"
             "License: GNU GPL version 3 (see LICENSE-GPLv3.txt)\n"
-            "This directory is an unmodified upstream production build except for the local-only CSP and PWA-path adjustments made by OUTPOST.\n",
+            "This directory is the upstream production build. OUTPOST tightens the entry-page CSP to local-only resource origins.\n",
             encoding="utf-8")
         # Force local-only resource loading and remove root-level manifest URL.
         index=DEST/"index.html"
