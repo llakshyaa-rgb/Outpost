@@ -226,7 +226,7 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.3.1"
+    server_version = "OUTPOST/0.3.2"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -244,7 +244,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.3.1","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.3.2","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
