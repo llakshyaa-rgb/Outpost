@@ -87,7 +87,7 @@ def main():
         import re
         html=re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>',
             '<meta http-equiv="Content-Security-Policy" content="default-src \\'self\\' data: file: blob: about:; script-src \\'self\\' \\'unsafe-inline\\' \\'unsafe-eval\\' \\'wasm-unsafe-eval\\' blob:; style-src \\'self\\' \\'unsafe-inline\\'; img-src \\'self\\' data: file: blob:; font-src \\'self\\' data:; connect-src \\'self\\'; worker-src \\'self\\' blob:; frame-src \\'self\\'; object-src \\'none\\';">',html,count=1,flags=re.I)
-        html=re.sub(r'<link[^>]+rel=["\\']manifest["\\'][^>]*>', '',html,flags=re.I)
+        html=re.sub(r"<link[^>]+rel=[\"']manifest[\"'][^>]*>", '',html,flags=re.I)
         html=html.replace('href="../node_modules/bootstrap/dist/css/bootstrap.min.css"','href="css/bootstrap.min.css"')
         index.write_text(html,encoding="utf-8")
         os.replace(staging,DEST)
