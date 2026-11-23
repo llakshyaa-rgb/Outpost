@@ -1,7 +1,7 @@
 import sqlite3
 import unittest
 
-from outpost_modules.systems import chunk_text, decode_candidates, ensure_uplink, rebuild_uplink, search_uplink
+from outpost_modules.systems import (chunk_text, decode_candidates, ensure_uplink, rebuild_uplink, search_uplink, record_uplink_feedback, evaluate_uplink_query, queue_uplink_question, list_uplink_questions, close_uplink_question, uplink_report)
 
 
 class OfflineSystemsTests(unittest.TestCase):
@@ -31,6 +31,19 @@ class OfflineSystemsTests(unittest.TestCase):
         result=rebuild_uplink(db)
         self.assertEqual(result["documents_refreshed"],1)
         self.assertTrue(search_uplink(db,"changed archive"))
+        hit=search_uplink(db,"changed archive")[0]
+        record_uplink_feedback(db,"changed archive",hit["id"],True,"correct source")
+        self.assertGreaterEqual(search_uplink(db,"changed archive")[0]["helpful_votes"],1)
+        evaluation=evaluate_uplink_query(db,"changed archive","/docs/a.md")
+        self.assertTrue(evaluation["matched"])
+        qid=queue_uplink_question(db,"How does local archive search work?")
+        self.assertEqual(list_uplink_questions(db)[0]["id"],qid)
+        close_uplink_question(db,qid,"Reviewed the local index docs")
+        self.assertEqual(list_uplink_questions(db)[0]["status"],"resolved")
+        report=uplink_report(db)
+        self.assertEqual(report["evaluation_runs"],1)
+        self.assertEqual(report["questions_open"],0)
+
 
 
 if __name__=="__main__":
