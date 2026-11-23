@@ -226,7 +226,7 @@ def knowledge_catalog():
     return items
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OUTPOST/0.3.2"
+    server_version = "OUTPOST/0.4.0"
     def log_message(self, *_): pass
     def send_json(self, obj, status=200):
         data = json.dumps(obj, ensure_ascii=False).encode()
@@ -244,7 +244,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             with connect() as c:
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
-            self.send_json({"ok":True,"name":"OUTPOST","version":"0.3.2","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
+            self.send_json({"ok":True,"name":"OUTPOST","version":"0.4.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
         if u.path == "/api/export":
             with connect() as c:
@@ -450,11 +450,17 @@ class Handler(BaseHTTPRequestHandler):
             from urllib.parse import parse_qs
             q = parse_qs(u.query).get("q",[""])[0].strip()
             if not q: self.send_json([]); return
+            from outpost_modules.retrieval import match_expressions
             like="%"+q.replace("%","")+"%"
+            docs=[]
             with connect() as c:
-                try:
-                    docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,snippet(documents_fts,2,'⟦','⟧',' … ',18) snippet,'file' kind,bm25(documents_fts) rank FROM documents_fts JOIN documents d ON d.id=documents_fts.rowid WHERE documents_fts MATCH ? ORDER BY rank LIMIT 40",(q,))]
-                except sqlite3.OperationalError:
+                for expression in match_expressions(q):
+                    try:
+                        docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,snippet(documents_fts,2,'⟦','⟧',' … ',18) snippet,'file' kind,bm25(documents_fts) rank FROM documents_fts JOIN documents d ON d.id=documents_fts.rowid WHERE documents_fts MATCH ? ORDER BY rank LIMIT 40",(expression,))]
+                    except sqlite3.OperationalError:
+                        docs=[]
+                    if docs: break
+                if not docs:
                     docs=[dict(x) for x in c.execute("SELECT id,name,path,substr(content,1,260) snippet,'file' kind FROM documents WHERE name LIKE ? OR content LIKE ? LIMIT 40",(like,like))]
                 notes=[dict(x) for x in c.execute("SELECT id,title name,'note' path,substr(body,1,260) snippet,'note' kind FROM notes WHERE title LIKE ? OR body LIKE ? LIMIT 30",(like,like))]
                 refs=[dict(x) for x in c.execute("SELECT id,title name,url path,substr(note,1,260) snippet,'bookmark' kind FROM bookmarks WHERE title LIKE ? OR note LIKE ? OR url LIKE ? LIMIT 30",(like,like,like))]
@@ -489,6 +495,9 @@ class Handler(BaseHTTPRequestHandler):
                     raw=fp.read_bytes()
                 else:
                     raw=text_input.encode("utf-8",errors="replace")
+                if mode in {"strings","hexdump","carve","elf","pe","pcap"}:
+                    from outpost_modules.cyberdesk import analyze
+                    self.send_json(analyze(mode,raw,text_input)); return
                 if mode=="triage":
                     if not raw: raise ValueError("Provide text or select a file")
                     sample=raw[:65536]
