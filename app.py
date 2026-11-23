@@ -764,17 +764,26 @@ class Handler(BaseHTTPRequestHandler):
                     import csv
                     if not raw: raise ValueError("Choose a CSV file or paste CSV text")
                     sample=raw[:2_000_000].decode("utf-8-sig",errors="replace")
-                    rows=list(csv.reader(io.StringIO(sample)))[:20001]
+                    import itertools
+                    reader=csv.reader(io.StringIO(sample))
+                    rows=list(itertools.islice(reader,20001))
                     header=rows[0] if rows else []
                     self.send_json({"columns":header,"rows_sampled":max(0,len(rows)-1),"column_count":len(header),
-                                    "preview":rows[:21],"truncated":len(raw)>2_000_000 or len(rows)>20001}); return
+                                    "preview":rows[:21],"truncated":len(raw)>2_000_000 or len(rows)==20001}); return
                 if mode=="json-inspect":
                     if not raw or len(raw)>2_000_000: raise ValueError("Provide JSON smaller than 2 MB")
                     obj=json.loads(raw.decode("utf-8-sig"))
+                    budget={"nodes":0}
                     def shape(value,depth=0):
-                        if depth>8:return "depth-limit"
-                        if isinstance(value,dict):return {"type":"object","keys":list(value.keys())[:100],"children":{str(k):shape(v,depth+1) for k,v in list(value.items())[:30]}}
-                        if isinstance(value,list):return {"type":"array","length":len(value),"sample":shape(value[0],depth+1) if value else None}
+                        budget["nodes"]+=1
+                        if depth>=8:return {"type":"depth-limit"}
+                        if budget["nodes"]>1500:return {"type":"node-limit"}
+                        if isinstance(value,dict):
+                            items=list(value.items())[:30]
+                            return {"type":"object","key_count":len(value),"keys":[str(k)[:160] for k in list(value.keys())[:100]],
+                                    "children":{str(k)[:160]:shape(v,depth+1) for k,v in items}}
+                        if isinstance(value,list):
+                            return {"type":"array","length":len(value),"sample":[shape(v,depth+1) for v in value[:5]]}
                         return {"type":"null" if value is None else type(value).__name__}
                     self.send_json({"valid":True,"structure":shape(obj)}); return
                 if mode=="triage":
