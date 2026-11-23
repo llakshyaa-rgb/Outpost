@@ -1,0 +1,7 @@
+Claude-BugHunter content attribution
+
+Upstream: https://github.com/elementalsouls/Claude-BugHunter
+Adapted file: cbh/data/skill_index.json (skill names and descriptions only)
+Content license: Creative Commons Attribution 4.0 International (upstream LICENSE-CONTENT)
+Upstream source code license: MIT (upstream LICENSE)
+OUTPOST integration: compact searchable Markdown index; no skill scripts or network tooling bundled or executed.
