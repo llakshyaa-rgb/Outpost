@@ -5,7 +5,7 @@ OUTPOST is a native local application, not a launcher for eight online services.
 | Selected project | Upstream capability | OUTPOST offline implementation | Still not bundled |
 |---|---|---|---|
 | AFDrive — [ashwithfrank/AFDrive](https://github.com/ashwithfrank/AFDrive) | Termux-hosted personal file cloud, safe file handling, uploads/downloads, folders | Local folder browser, create folder, upload/download, rename/copy (including bounded directory trees)/move/delete, ZIP create/extract, duplicate detection, metadata and safe path checks | Login-protected LAN cloud server and multi-device access are intentionally excluded |
-| Kiwix JS — [kiwix/kiwix-js](https://github.com/kiwix/kiwix-js) | Portable JavaScript ZIM reader / PWA | Local .zim discovery and optional `kiwix-serve` handoff on loopback | Kiwix JS PWA assets / WASM runtime are not bundled; no ZIM content downloads |
+| Kiwix JS — [kiwix/kiwix-js](https://github.com/kiwix/kiwix-js) | Portable JavaScript ZIM reader / PWA | Local .zim discovery and optional `kiwix-serve` handoff on loopback; separate native XML-to-compressed-SQLite Wikipedia importer and local reader | Kiwix JS PWA assets / WASM runtime are not bundled; standard ZIM reading still needs local `kiwix-serve`; no ZIM content downloads |
 | Personal File Archive — [kevin0309/PersonalFileArchive](https://github.com/kevin0309/PersonalFileArchive) | Java/Tomcat web archive with upload/download and database-backed management | Native file catalogue and archive operations | Original Java/Tomcat runtime; it is not a suitable drop-in for the stdlib Termux app |
 | Grimoire — [PentHertz/grimoire](https://github.com/PentHertz/grimoire) | Offline full-text search across cloned security knowledge bases, with provenance and document viewer | Local ZIP knowledge-pack import, local indexing/search, in-app reference reader and file catalog | Remote corpus fetching, full source catalog and original rich document viewer |
 | Termux-Tools — [termux/termux-tools](https://github.com/termux/termux-tools) | Scripts and small programs shipped by Termux | Read-only Termux/runtime/command diagnostics | Replacing Termux's own package scripts or automatically running shell commands |
@@ -24,6 +24,8 @@ OUTPOST is a native local application, not a launcher for eight online services.
 ## Local folders
 
 - `data/zim/`: local ZIM archives.
+- `data/wiki/wiki.db`: compressed text-only encyclopedia.
+- `data/wiki/images/`: optional curated raster illustrations.
 - `knowledge/security/`: trusted defensive references.
 - `knowledge/bughunter/`: Agent Skills and supporting local references.
 - `knowledge/imported/`: contents imported from local ZIP knowledge packs.
@@ -66,3 +68,8 @@ The `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` file is adapted from the ups
 ## Kiwix content catalog (OUTPOST 0.6.0)
 
 The Offline library view offers four optional curated ZIM downloads: Simple English Wikipedia full-text/no-images (about 1.0 GiB), WikiMed full-text/no-images (about 822 MiB), English Wikipedia Top mini (about 283 MiB), and an Astronomy maxi pack (about 1.6 GiB). Sizes are estimates and should be checked at download time. The catalog is a set of direct Kiwix download links, not bundled content. The user explicitly initiates each download in their browser and manually places the file in `data/zim/`. This avoids background network activity, silent multi-gigabyte downloads, and Git repository bloat. The full English Wikipedia does not fit a 5 GB budget: Kiwix's current full English editions are much larger. See the official [Kiwix FAQ](https://get.kiwix.org/en/faq/) for mini/nopic/maxi differences.
+
+
+## Compact encyclopedia implementation (0.7.0)
+
+The Offline library includes a native streaming importer for Wikimedia pages-articles XML, plain or gzip/bzip2 compressed. It stores main-namespace article bodies compressed with zlib in a dedicated SQLite database, strips most templates and presentation markup, and indexes titles plus lead text for low-footprint search. It records selected diagram/map/technical image references but does not fetch images. Users may import a hand-picked local ZIP of raster images; the importer caps it at 120 images / 150 MB and excludes SVG. The encyclopedia database has a 10 GiB ceiling. Full-coverage size and completeness are unknown until a real dump is imported and measured; no 7–10 GiB all-article guarantee is made.
