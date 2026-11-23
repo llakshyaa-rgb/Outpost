@@ -12,7 +12,7 @@ STATIC = ROOT / "static"
 DATA.mkdir(exist_ok=True)
 DB = DATA / "outpost.db"
 CONFIG = DATA / "config.json"
-MAX_BODY = 1_000_000
+MAX_BODY = 8_000_000
 MAX_FILE = 1_000_000
 TEXT_EXT = {".txt",".md",".markdown",".json",".csv",".py",".js",".ts",".tsx",".jsx",".html",".css",".yml",".yaml",".toml",".ini",".cfg",".log",".xml",".sh",".sql"}
 LOCK = threading.RLock()
@@ -69,23 +69,42 @@ def index_files():
     builtin = ROOT / "knowledge"
     if builtin.is_dir() and builtin.resolve() not in roots: roots.append(builtin.resolve())
     count = skipped = 0
+    seen = set()
     for root in roots:
-        for base, dirs, names in os.walk(root):
-            dirs[:] = [d for d in dirs if d not in {".git","node_modules",".venv","venv","__pycache__","Android"}]
+        for base, dirs, names in os.walk(root, followlinks=False):
+            dirs[:] = [d for d in dirs if d not in {".git","node_modules",".venv","venv","__pycache__","Android"} and not (Path(base) / d).is_symlink()]
             for name in names:
                 p = Path(base) / name
                 try:
-                    if p.suffix.lower() not in TEXT_EXT: skipped += 1; continue
-                    st = p.stat()
-                    if st.st_size > MAX_FILE: skipped += 1; continue
-                    content = p.read_text(encoding="utf-8", errors="replace")
+                    resolved = p.resolve()
+                    if root not in resolved.parents or not resolved.is_file():
+                        skipped += 1
+                        continue
+                    if resolved.suffix.lower() not in TEXT_EXT:
+                        skipped += 1
+                        continue
+                    st = resolved.stat()
+                    if st.st_size > MAX_FILE:
+                        skipped += 1
+                        continue
+                    content = resolved.read_text(encoding="utf-8", errors="replace")
                     with LOCK, connect() as c:
                         c.execute("""INSERT INTO documents(path,name,content,size,modified,indexed) VALUES(?,?,?,?,?,?)
                         ON CONFLICT(path) DO UPDATE SET name=excluded.name,content=excluded.content,size=excluded.size,modified=excluded.modified,indexed=excluded.indexed""",
-                        (str(p),name,content,st.st_size,st.st_mtime,time.time()))
+                        (str(resolved),name,content,st.st_size,st.st_mtime,time.time()))
+                    seen.add(str(resolved))
                     count += 1
-                except (OSError, sqlite3.Error): skipped += 1
-    return {"indexed":count,"skipped":skipped,"roots":[str(x) for x in roots]}
+                except (OSError, sqlite3.Error):
+                    skipped += 1
+    stale = 0
+    with LOCK, connect() as c:
+        rows = c.execute("SELECT id,path FROM documents").fetchall()
+        for row in rows:
+            path = Path(row["path"])
+            if any(root == path or root in path.parents for root in roots) and str(path) not in seen and not path.exists():
+                c.execute("DELETE FROM documents WHERE id=?", (row["id"],))
+                stale += 1
+    return {"indexed":count,"skipped":skipped,"removed":stale,"roots":[str(x) for x in roots]}
 
 def payload(handler):
     n = int(handler.headers.get("Content-Length","0"))
