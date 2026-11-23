@@ -4,7 +4,7 @@ OUTPOST is a native local application, not a launcher for eight online services.
 
 | Selected project | Upstream capability | OUTPOST offline implementation | Still not bundled |
 |---|---|---|---|
-| AFDrive — [ashwithfrank/AFDrive](https://github.com/ashwithfrank/AFDrive) | Termux-hosted personal file cloud, safe file handling, uploads/downloads, folders | Local folder browser, create folder, upload/download, rename/copy/delete, ZIP create/extract, duplicate detection, metadata and safe path checks | Login-protected LAN cloud server and multi-device access are intentionally excluded |
+| AFDrive — [ashwithfrank/AFDrive](https://github.com/ashwithfrank/AFDrive) | Termux-hosted personal file cloud, safe file handling, uploads/downloads, folders | Local folder browser, create folder, upload/download, rename/copy (including bounded directory trees)/move/delete, ZIP create/extract, duplicate detection, metadata and safe path checks | Login-protected LAN cloud server and multi-device access are intentionally excluded |
 | Kiwix JS — [kiwix/kiwix-js](https://github.com/kiwix/kiwix-js) | Portable JavaScript ZIM reader / PWA | Local .zim archive discovery | Reader assets and in-app ZIM rendering; no remote PWA link in offline mode |
 | Personal File Archive — [kevin0309/PersonalFileArchive](https://github.com/kevin0309/PersonalFileArchive) | Java/Tomcat web archive with upload/download and database-backed management | Native file catalogue and archive operations | Original Java/Tomcat runtime; it is not a suitable drop-in for the stdlib Termux app |
 | Grimoire — [PentHertz/grimoire](https://github.com/PentHertz/grimoire) | Offline full-text search across cloned security knowledge bases, with provenance and document viewer | Local ZIP knowledge-pack import, local indexing/search, in-app reference reader and file catalog | Remote corpus fetching, full source catalog and original rich document viewer |
@@ -48,8 +48,16 @@ The inspected repository metadata identifies Kiwix JS and Termux-Tools as GPL-3.
 The current branch has not yet been runtime-tested on the target Android/Termux device. Test folder permissions, uploads/downloads, FTS5, optional document extractors, large imports and large-folder indexing before relying on it for important files.
 
 
-## 0.4.0 implementation notes
+## 0.5.0 implementation notes
 
 The lightweight integration modules in `outpost_modules/` are first-party OUTPOST code using Python's standard library. `retrieval.py` supplies safe FTS query construction and bounded overlapping passages. `cyberdesk.py` supplies static string extraction, hex display, embedded signature detection, ELF/PE header parsing and classic PCAP metadata parsing. The UI exposes these tools through the existing local security endpoint.
 
-The `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` file is adapted from the upstream skill index only; see `ATTRIBUTION.txt`. It is a searchable reference catalog, not a claim that all original skill files are bundled. Kiwix JS's complete reader runtime is not vendored due its size; OUTPOST only discovers local ZIM archives and reports whether `kiwix-serve` is present. No automatic install or launch occurs.
+The `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` file is adapted from the upstream skill index only; see `ATTRIBUTION.txt`. It is a searchable reference catalog, not a claim that all original skill files are bundled. Kiwix JS's complete PWA runtime is not vendored. If `kiwix-serve` is already installed, OUTPOST can launch it for a selected local ZIM file, bound only to `127.0.0.1`; it is stopped when OUTPOST exits. No automatic install or download occurs.
+
+
+## 0.5.0 native capability expansion
+
+- AFDrive-style directory copying is bounded to 2,000 files / 300 MB, skips symlinks, and supports moves within configured roots.
+- Kiwix can hand a selected local ZIM archive to an already-installed `kiwix-serve`; the child process binds to loopback and is terminated when OUTPOST exits. It is optional and never installed automatically.
+- CyberDesk's PE parser lists bounded section metadata. Classic PCAP inspection summarizes up to 100 packets and decodes Ethernet, IPv4/IPv6, TCP and UDP headers without external libraries. PCAPNG remains header-detection only.
+- Regression tests cover PCAP packet decoding and PE section parsing. Run `python -m unittest discover -s tests -v` on the device before relying on the build.
