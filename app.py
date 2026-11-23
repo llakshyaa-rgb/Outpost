@@ -249,13 +249,13 @@ class Handler(BaseHTTPRequestHandler):
             security_count=sum(1 for folder in (knowledge/"security",knowledge/"imported") if folder.is_dir() for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in {".md",".txt",".rst",".yaml",".yml"})
             modules=[
               {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"OUTPOST uses its own loopback-only file layer; AFDrive is the architecture reference."},
-              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"partial","count":zim_count,"detail":"ZIM archives are discovered locally; open them with Kiwix JS/PWA."},
+              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"partial","count":zim_count,"detail":"Local ZIM archive discovery is available; the reader itself is not bundled."},
               {"id":"pfa","name":"Personal File Archive","role":"Local archive and incremental document indexing","status":"core","detail":"Unified local file index and search are built into OUTPOST."},
-              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Knowledge folder is indexed locally; add licensed playbooks under knowledge/security."},
+              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Local knowledge folders and imported packs are indexed and searchable offline."},
               {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only Termux environment and installed-command detection; no shell commands are run by the dashboard."},
               {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"OUTPOST search is local and indexes selected roots; citation-style source paths are shown."},
-              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"partial" if bug_count else "waiting","count":bug_count,"detail":"Optional local Agent Skills can be placed under knowledge/bughunter and searched offline."},
-              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"OUTPOST includes safe offline file analysis; active tools are not auto-run."}
+              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"partial" if bug_count else "waiting","count":bug_count,"detail":"Local Agent Skills and support files can be imported and searched; scripts are never executed."},
+              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"Static file triage, ZIP audit, hashes, entropy, strings, classical ciphers and local transforms are available."}
             ]
             self.send_json(modules); return
         if u.path == "/api/system":
