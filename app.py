@@ -342,6 +342,92 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/security/tool":
+            import hashlib, math, re, base64, binascii
+            try:
+                mode=str(data.get("tool",""))
+                text_input=str(data.get("text",""))[:200000]
+                raw=b""
+                if data.get("path"):
+                    fp=managed_path(str(data.get("path")))
+                    if not fp.is_file() or fp.stat().st_size>20_000_000: raise ValueError("Choose a file smaller than 20 MB")
+                    raw=fp.read_bytes()
+                else:
+                    raw=text_input.encode("utf-8",errors="replace")
+                if mode=="triage":
+                    if not raw: raise ValueError("Provide text or select a file")
+                    sample=raw[:65536]
+                    counts={}
+                    for b in sample: counts[b]=counts.get(b,0)+1
+                    entropy=round(-sum((n/len(sample))*math.log2(n/len(sample)) for n in counts.values()),4)
+                    signatures=[(b"\x7fELF","ELF executable"),(b"MZ","Windows executable / DOS"),(b"PK\x03\x04","ZIP / Office / APK"),(b"%PDF-","PDF document"),(b"\x89PNG\r\n\x1a\n","PNG image"),(b"\xff\xd8\xff","JPEG image"),(b"GIF8","GIF image"),(b"SQLite format 3","SQLite database"),(b"RIFF","RIFF media container"),(b"OggS","Ogg media"),(b"pcap","Packet capture")]
+                    kind=next((label for magic,label in signatures if raw.startswith(magic)),"Text or unknown binary")
+                    strings=re.findall(rb"[\x20-\x7e]{5,}",raw[:2_000_000])
+                    result={"type":kind,"size":len(raw),"sha256":hashlib.sha256(raw).hexdigest(),"md5":hashlib.md5(raw).hexdigest(),"sample_entropy":entropy,"strings":[x.decode("ascii","replace") for x in strings[:100]],"note":"Static triage only; no execution or active probing."}
+                    self.send_json(result); return
+                if mode=="hashid":
+                    value=text_input.strip()
+                    if not value: raise ValueError("Enter a hash")
+                    patterns=[]
+                    if re.fullmatch(r"[a-fA-F0-9]{32}",value): patterns=["MD5 / NTLM / MD4 (ambiguous 32-hex digest)"]
+                    elif re.fullmatch(r"[a-fA-F0-9]{40}",value): patterns=["SHA-1 (or another 160-bit digest)"]
+                    elif re.fullmatch(r"[a-fA-F0-9]{64}",value): patterns=["SHA-256 (or another 256-bit digest)"]
+                    elif re.fullmatch(r"[a-fA-F0-9]{96}",value): patterns=["SHA-384 (or another 384-bit digest)"]
+                    elif re.fullmatch(r"[a-fA-F0-9]{128}",value): patterns=["SHA-512 (or another 512-bit digest)"]
+                    elif value.startswith(("$2a$","$2b$","$2y$")): patterns=["bcrypt"]
+                    elif value.startswith("$6$"): patterns=["sha512crypt"]
+                    elif value.startswith("$5$"): patterns=["sha256crypt"]
+                    elif value.startswith("$1$"): patterns=["md5crypt"]
+                    elif value.startswith("$argon2"): patterns=["Argon2 family"]
+                    else: patterns=["Unknown / unsupported format"]
+                    self.send_json({"candidates":patterns,"warning":"Format identification is heuristic. Never assume a digest's algorithm from length alone."}); return
+                if mode in {"caesar","atbash","rot47"}:
+                    source=text_input
+                    def caesar(k):
+                        out=[]
+                        for ch in source:
+                            if "a"<=ch<="z": out.append(chr((ord(ch)-97+k)%26+97))
+                            elif "A"<=ch<="Z": out.append(chr((ord(ch)-65+k)%26+65))
+                            else: out.append(ch)
+                        return "".join(out)
+                    if mode=="caesar":
+                        results=[{"shift":k,"text":caesar(k)} for k in range(1,26)]
+                        self.send_json({"results":results}); return
+                    if mode=="atbash":
+                        self.send_json({"text":"".join(chr(122-(ord(c)-97)) if "a"<=c<="z" else chr(90-(ord(c)-65)) if "A"<=c<="Z" else c for c in source)}); return
+                    self.send_json({"text":"".join(chr(33+(ord(c)-33+47)%94) if 33<=ord(c)<=126 else c for c in source)}); return
+                if mode=="xor-single":
+                    if not raw: raise ValueError("Provide input text or a file")
+                    ranked=[]
+                    for key in range(256):
+                        out=bytes(b^key for b in raw[:65536])
+                        printable=sum(1 for b in out if b in (9,10,13) or 32<=b<127)/max(1,len(out))
+                        common=sum(out.lower().count(x) for x in (b" the ",b" and ",b" to ",b" of "))
+                        ranked.append((printable+min(common,20)*0.005,key,out))
+                    ranked.sort(reverse=True)
+                    self.send_json({"candidates":[{"key":k,"printable_score":round(score,4),"preview":out[:500].decode("utf-8","replace")} for score,k,out in ranked[:5]]}); return
+                if mode=="pipeline":
+                    doc=text_input
+                    steps=data.get("steps",[])
+                    if not isinstance(steps,list) or len(steps)>20: raise ValueError("Provide at most 20 transform steps")
+                    for step in steps:
+                        op=str(step.get("op",""))
+                        args=step.get("args",[])
+                        if op=="filter": doc="\n".join(x for x in doc.splitlines() if str(args[0]) in x)
+                        elif op=="replace": doc=doc.replace(str(args[0]),str(args[1]) if len(args)>1 else "")
+                        elif op=="sort": doc="\n".join(sorted(doc.splitlines(),reverse=(bool(args and args[0]=="desc"))))
+                        elif op=="unique": doc="\n".join(dict.fromkeys(doc.splitlines()))
+                        elif op=="reverse": doc=doc[::-1]
+                        elif op=="base64-decode": doc=base64.b64decode(doc,validate=True).decode("utf-8","replace")
+                        elif op=="base64-encode": doc=base64.b64encode(doc.encode()).decode()
+                        elif op=="hex-decode": doc=bytes.fromhex(doc).decode("utf-8","replace")
+                        elif op=="hex-encode": doc=doc.encode().hex()
+                        else: raise ValueError("Unsupported pipeline operation: "+op)
+                        if len(doc)>200000: raise ValueError("Pipeline output limit exceeded")
+                    self.send_json({"result":doc}); return
+                raise ValueError("Unknown security tool")
+            except (ValueError, OSError, binascii.Error, IndexError, KeyError) as e:
+                self.send_json({"error":str(e)},400); return
         if self.path == "/api/file/action":
             import base64, shutil
             op=str(data.get("operation",""))
