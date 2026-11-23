@@ -4,14 +4,15 @@
 
 ## Current offline feature set
 
-- **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename and delete files; explicit roots only.
+- **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename, copy, delete and create ZIP archives; safe ZIP extraction; explicit roots only.
+- **Archive hygiene:** scan selected folders for byte-identical duplicates using SHA-256, with bounded scan sizes.
 - **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
 - **Kiwix library discovery:** finds local .zim archives. The reader itself is not bundled or launched yet.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
 - **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
 - **Termux diagnostics:** detects Termux, Python, Git and selected local commands. It does not install packages or run arbitrary shell commands.
 - **Claude-BugHunter reference library:** import and search local Agent Skill files and supporting scripts. Imported scripts are stored as reference material and are never executed.
-- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates and a bounded text-transform pipeline.
+- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates and a bounded text-transform pipeline.
 - Notes, collections, bookmarks, IPv4/IPv6 calculations, and JSON backup export/import.
 
 ## Run on Android / Termux
