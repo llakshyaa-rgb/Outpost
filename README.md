@@ -51,18 +51,26 @@ OUTPOST does not scan your device automatically. Add only folders you choose in 
 The IP toolbox performs calculations only; it does not scan hosts or contact external services.
 
 OUTPOST is a local knowledge and productivity workspace, not an offensive security tool.
-## Optional integrations (design review)
 
-OUTPOST's core stays dependency-free and offline-first. External projects are **not copied into the core**; they are separate, opt-in tools:
+## The eight selected integrations
 
-| Project | Intended role | Integration decision |
-|---|---|---|
-| [Tookie-OSINT](https://github.com/Alfredredbird/tookie-osint) | Username-to-public-profile discovery | Optional network-dependent tool; its upstream project supports Termux. Keep scans explicit and user-initiated. |
-| [Claude-BugHunter](https://github.com/elementalsouls/Claude-BugHunter) | Security research methodology and reporting skills | Reference/knowledge pack only; it is a Claude Code skill bundle, not a standalone offline scanner. Use only on owned or explicitly authorized targets. |
-| [IPinfo CLI](https://github.com/ipinfo/cli) | IP/ASN intelligence | Optional external lookup; requires network access and has reduced functionality without an API token. |
-| [Pi-hole](https://github.com/pi-hole/pi-hole) | DNS filtering and network statistics | Connect to an already-running Pi-hole instance on the user's network; OUTPOST will not install or administer DNS services itself. |
-| [Nextcloud](https://github.com/nextcloud/server) | File sync and sharing | Keep as an external server option, not bundled into OUTPOST's lightweight Termux process. |
-| Reddit r/Piracy | Community-maintained reference material | Link to public resources only; do not scrape or redistribute copyrighted content. |
+The integration plan is documented in [INTEGRATIONS.md](INTEGRATIONS.md). OUTPOST combines the useful local capabilities of these projects without bundling incompatible servers or running third-party code automatically:
 
-These tools are not required to run OUTPOST. Network integrations must be clearly labelled and remain disabled until configured. No background scans or remote access are enabled by default.
+1. **AFDrive** — local file-vault architecture and safe file management.
+2. **Kiwix JS** — discover local ZIM archives for offline reading.
+3. **Personal File Archive** — local file catalogue and metadata.
+4. **Grimoire** — offline searchable security knowledge.
+5. **Termux-Tools** — Android environment and command availability checks.
+6. **Uplink** — local document retrieval and source-grounded search patterns.
+7. **Claude-BugHunter** — optional offline Agent Skills/reference material for authorized testing.
+8. **CyberDesk** — safe local file inspection and defensive research workspace.
 
+### Integration folders
+
+- Put ZIM archives in `data/zim/` (large binary archives are not stored in Git).
+- Put trusted, licensed Markdown/YAML security references in `knowledge/security/`.
+- Put optional Agent Skills / `SKILL.md` references in `knowledge/bughunter/`.
+
+The two knowledge folders are automatically included in local indexing. The File Archive view browses only explicitly selected folders plus OUTPOST's own knowledge folder. File inspection calculates SHA-256 and previews supported text; it never executes a file.
+
+**Offline boundary:** ZIM archives and external knowledge repositories must first be obtained. Once stored locally, the reader/index can work without an internet connection. External projects remain separate; their licenses must be respected before copying any code or assets.
