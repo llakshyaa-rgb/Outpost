@@ -84,7 +84,7 @@ def _schema(conn):
         chars INTEGER NOT NULL, lead TEXT NOT NULL, images TEXT NOT NULL,
         updated REAL NOT NULL
       );
-      CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(title, lead, tokenize='unicode61');
+      CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(title, lead, content='articles', content_rowid='id', tokenize='unicode61');
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     """)
 
@@ -96,7 +96,6 @@ def import_dump(source: str, db_path: str, progress=None):
     try:
         _schema(conn)
         conn.execute("DELETE FROM articles")
-        conn.execute("DELETE FROM articles_fts")
         total=kept=0; batch=[]
         with _open_dump(path) as stream:
             for _, elem in ET.iterparse(stream, events=("end",)):
@@ -117,14 +116,13 @@ def import_dump(source: str, db_path: str, progress=None):
                 if len(batch)>=300:
                     with conn:
                         conn.executemany("INSERT OR REPLACE INTO articles(title,body,chars,lead,images,updated) VALUES(?,?,?,?,?,?)",batch)
-                        conn.executemany("INSERT INTO articles_fts(title,lead) VALUES(?,?)",[(x[0],x[3]) for x in batch])
                     batch=[]
                     if progress: progress({"pages_seen":total,"articles_saved":kept})
             if batch:
                 with conn:
                     conn.executemany("INSERT OR REPLACE INTO articles(title,body,chars,lead,images,updated) VALUES(?,?,?,?,?,?)",batch)
-                    conn.executemany("INSERT INTO articles_fts(title,lead) VALUES(?,?)",[(x[0],x[3]) for x in batch])
         with conn:
+            conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('rebuild')")
             conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('source',?)",(path.name,))
             conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('imported_at',?)",(str(time.time()),))
             conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('pages_seen',?)",(str(total),))
