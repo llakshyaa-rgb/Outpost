@@ -229,7 +229,7 @@ class Handler(BaseHTTPRequestHandler):
                         block=f.read(65536)
                         if not block: break
                         digest.update(block)
-                signatures=[(b"\\x7fELF","ELF executable"),(b"PK\\x03\\x04","ZIP archive / Office document"),(b"%PDF-","PDF document"),(b"\\x89PNG","PNG image"),(b"\\xff\\xd8\\xff","JPEG image"),(b"GIF8","GIF image"),(b"SQLite format 3","SQLite database")]
+                signatures=[(b"\x7fELF","ELF executable"),(b"PK\x03\x04","ZIP archive / Office document"),(b"%PDF-","PDF document"),(b"\x89PNG","PNG image"),(b"\xff\xd8\xff","JPEG image"),(b"GIF8","GIF image"),(b"SQLite format 3","SQLite database")]
                 kind=next((label for magic,label in signatures if head.startswith(magic)), "Text or unknown binary")
                 preview=""
                 if p.suffix.lower() in TEXT_EXT and st.st_size<=1_000_000:
