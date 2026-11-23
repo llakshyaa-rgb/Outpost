@@ -106,6 +106,12 @@ class Handler(BaseHTTPRequestHandler):
                 counts = {t:c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("notes","collections","bookmarks","documents")}
             self.send_json({"ok":True,"name":"OUTPOST","version":"0.1.0","storage":"local SQLite","counts":counts,"index_roots":load_config().get("index_roots",[])})
             return
+        if u.path == "/api/export":
+            with connect() as c:
+                notes=[dict(x) for x in c.execute("SELECT title,body,created,updated FROM notes")]
+                collections=[dict(x) for x in c.execute("SELECT name,description,created FROM collections")]
+                bookmarks=[dict(x) for x in c.execute("SELECT b.title,b.url,b.note,b.created,c.name AS collection_name FROM bookmarks b LEFT JOIN collections c ON c.id=b.collection_id")]
+            self.send_json({"version":1,"exported_at":time.time(),"notes":notes,"collections":collections,"bookmarks":bookmarks}); return
         if u.path == "/api/notes":
             with connect() as c: rows=[dict(x) for x in c.execute("SELECT * FROM notes ORDER BY updated DESC LIMIT 200")]
             self.send_json(rows); return
@@ -151,6 +157,33 @@ class Handler(BaseHTTPRequestHandler):
             if not title or not body: self.send_json({"error":"Title and body are required"},400); return
             with connect() as c: cur=c.execute("INSERT INTO notes(title,body,created,updated) VALUES(?,?,?,?)",(title,body,now,now))
             self.send_json({"ok":True,"id":cur.lastrowid},201); return
+        if self.path == "/api/import":
+            if not isinstance(data,dict) or data.get("version") != 1:
+                self.send_json({"error":"Unsupported backup format"},400); return
+            try:
+                notes=data.get("notes",[]); collections=data.get("collections",[]); bookmarks=data.get("bookmarks",[])
+                if any(not isinstance(x,dict) for group in (notes,collections,bookmarks) for x in group):
+                    raise ValueError("Backup contains invalid records")
+                if sum(map(len,(notes,collections,bookmarks)))>10000:
+                    raise ValueError("Backup contains too many records")
+                with LOCK, connect() as c:
+                    for row in collections:
+                        name=str(row.get("name","")).strip()[:100]
+                        if name: c.execute("INSERT OR IGNORE INTO collections(name,description,created) VALUES(?,?,?)",(name,str(row.get("description",""))[:500],float(row.get("created",now))))
+                    ids={x["name"]:x["id"] for x in c.execute("SELECT id,name FROM collections")}
+                    for row in notes:
+                        title=str(row.get("title","Untitled")).strip()[:160]
+                        body=str(row.get("body",""))[:50000]
+                        if title and body: c.execute("INSERT INTO notes(title,body,created,updated) VALUES(?,?,?,?)",(title,body,float(row.get("created",now)),float(row.get("updated",now))))
+                    for row in bookmarks:
+                        title=str(row.get("title","Untitled")).strip()[:200]
+                        url=str(row.get("url","")).strip()[:1000]
+                        if url and not url.startswith(("https://","http://")): url=""
+                        if title: c.execute("INSERT INTO bookmarks(collection_id,title,url,note,created) VALUES(?,?,?,?,?)",(ids.get(row.get("collection_name")),title,url,str(row.get("note",""))[:2000],float(row.get("created",now))))
+                self.send_json({"ok":True,"imported":{"notes":len(notes),"collections":len(collections),"bookmarks":len(bookmarks)}})
+            except Exception as e:
+                self.send_json({"error":"Backup could not be imported: "+str(e)},400)
+            return
         if self.path == "/api/notes/update":
             try: ident=int(data.get("id",0))
             except (ValueError,TypeError): ident=0
