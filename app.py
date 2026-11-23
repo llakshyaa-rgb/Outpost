@@ -433,7 +433,7 @@ class Handler(BaseHTTPRequestHandler):
             like="%"+q.replace("%","")+"%"
             with connect() as c:
                 try:
-                    docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,substr(d.content,1,260) snippet,'file' kind FROM documents_fts f JOIN documents d ON d.id=f.rowid WHERE documents_fts MATCH ? LIMIT 40",(q,))]
+                    docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,snippet(documents_fts,2,'⟦','⟧',' … ',18) snippet,'file' kind,bm25(documents_fts) rank FROM documents_fts JOIN documents d ON d.id=documents_fts.rowid WHERE documents_fts MATCH ? ORDER BY rank LIMIT 40",(q,))]
                 except sqlite3.OperationalError:
                     docs=[dict(x) for x in c.execute("SELECT id,name,path,substr(content,1,260) snippet,'file' kind FROM documents WHERE name LIKE ? OR content LIKE ? LIMIT 40",(like,like))]
                 notes=[dict(x) for x in c.execute("SELECT id,title name,'note' path,substr(body,1,260) snippet,'note' kind FROM notes WHERE title LIKE ? OR body LIKE ? LIMIT 30",(like,like))]
