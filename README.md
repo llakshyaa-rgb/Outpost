@@ -1,22 +1,20 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST is an offline-first personal workspace for local files, knowledge, notes, references and practical utilities. It is designed for Android/Termux and Linux, with a lightweight Python standard-library server and SQLite storage.
+**Your own ground. Your own rules.** OUTPOST is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
-## What is in the current build
+## Current offline feature set
 
-- Unified responsive workspace with dedicated areas for all eight selected projects.
-- Local file archive: browse explicitly selected folders, inspect file signatures, calculate SHA-256 and preview supported text safely.
-- Offline library: discover local ZIM archives and track local Grimoire / Agent Skill knowledge packs.
-- Local knowledge search across indexed documents, notes and bookmarks (SQLite FTS5 when available).
-- Notes, collections and bookmarks with edit/delete support.
-- IPv4/IPv6 subnet calculator.
-- JSON backup export and additive import.
-- Termux/device diagnostics and module status.
-- No cloud account, analytics, CDN, remote font or external API needed for core use.
+- **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename and delete files; explicit roots only.
+- **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
+- **Kiwix library discovery:** finds local .zim archives. The reader itself is not bundled or launched yet.
+- **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
+- **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
+- **Termux diagnostics:** detects Termux, Python, Git and selected local commands. It does not install packages or run arbitrary shell commands.
+- **Claude-BugHunter reference library:** import and search local Agent Skill files and supporting scripts. Imported scripts are stored as reference material and are never executed.
+- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates and a bounded text-transform pipeline.
+- Notes, collections, bookmarks, IPv4/IPv6 calculations, and JSON backup export/import.
 
 ## Run on Android / Termux
-
-Install Termux from a trusted source, then:
 
 ```sh
 pkg update
@@ -26,50 +24,44 @@ cd Outpost
 python app.py
 ```
 
-Open **http://127.0.0.1:8765** in your browser. Stop the server with Ctrl+C.
+Open **http://127.0.0.1:8765**. Stop with Ctrl+C.
 
-Optional: grant Termux shared-storage access using `termux-setup-storage`, then add the folder paths you want OUTPOST to index in **Settings**. OUTPOST does not scan your phone automatically.
+Optional shared storage access:
 
-## Data locations
+```sh
+termux-setup-storage
+```
+
+Then add only the folders you want OUTPOST to access in Settings. It never scans the whole phone automatically.
+
+## Local data
 
 - SQLite database: `data/outpost.db`
 - Settings: `data/config.json`
 - ZIM archives: `data/zim/`
-- Security references: `knowledge/security/`
-- Agent Skill references: `knowledge/bughunter/`
+- Offline knowledge: `knowledge/`
+- Imported knowledge packs: `knowledge/imported/`
 
-Back up both the JSON export and the `data/` directory if you want a complete copy of your workspace. JSON backup includes notes, collections and bookmarks; it does not include large files or ZIM archives.
+The JSON backup includes notes, collections and bookmarks. It does not include your files, ZIM archives, or imported knowledge packs; back up the `data/` and `knowledge/` folders separately.
 
-## The eight selected projects
+## Offline-only boundary
 
-The integration map is in [INTEGRATIONS.md](INTEGRATIONS.md).
+- Core runtime makes no external API calls and uses no CDN, cloud account, analytics or remote fonts.
+- The app binds to `127.0.0.1` only.
+- Online OSINT, remote recon, web lookups, cloud integrations, remote source syncing and live network scanning are intentionally excluded for now.
+- Kiwix JS itself is not bundled; this build only discovers local ZIM files.
+- Optional PDF/Office extraction works only if the relevant libraries are already installed. The base app requires no pip packages.
 
-1. **AFDrive** — local file-vault patterns and safe file management.
-2. **Kiwix JS** — local ZIM archive discovery and offline reader handoff.
-3. **Personal File Archive** — local file catalogue and metadata.
-4. **Grimoire** — searchable offline security knowledge.
-5. **Termux-Tools** — device environment and command availability checks.
-6. **Uplink** — local retrieval and source-grounded search patterns.
-7. **Claude-BugHunter** — optional Agent Skills/reference material for authorized testing.
-8. **CyberDesk** — defensive file inspection and security research workspace.
+## Safety and resource limits
 
-### Important integration boundary
+- File operations are restricted to configured roots and OUTPOST knowledge folders; symlink paths are rejected.
+- File inspection and security tools are static/offline. Files are never executed.
+- Knowledge ZIP imports are size-bounded and reject path traversal and symlink entries.
+- Indexing is capped at 5,000 files / 300 MB total, with a 5 MB per-file limit.
+- The security toolkit is for local learning, CTF files and authorized defensive work. It does not probe external targets.
 
-OUTPOST is a unified native implementation inspired by the selected projects; it does **not** bundle eight complete upstream applications. The modules currently provide the native adapters described in [INTEGRATIONS.md](INTEGRATIONS.md). Third-party source code and datasets must be imported separately after checking their licenses. Kiwix reading requires a compatible reader and a ZIM archive obtained beforehand.
+## Validation
 
-## Privacy and safety
+Repository wiring has been updated, but runtime testing on the target Android/Termux phone is still required. In particular, test shared-storage permissions, SQLite FTS5, optional document extractors, uploads/downloads and large-folder performance.
 
-- Server binds to `127.0.0.1` only.
-- No whole-device scan; only selected index roots and OUTPOST's own knowledge folder are browsed/indexed.
-- File inspection never executes files.
-- No shell command or package installation is triggered by the dashboard.
-- Security playbooks are local reference material, not autonomous scanners.
-- The IP toolbox calculates addresses only; it does not probe hosts.
-
-## Requirements
-
-Python 3.10+; no pip packages required. SQLite FTS5 is used when present, with a basic local-search fallback.
-
-## Current validation status
-
-The repository files and route/UI wiring have been updated, but runtime behavior still needs to be exercised on the target Android/Termux device. This matters especially for shared-storage permissions, SQLite build options and the installed Kiwix reader.
+See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstream license notes.
