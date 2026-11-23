@@ -1,18 +1,18 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.4.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.5.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
-- **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename, copy, delete and create ZIP archives; safe ZIP extraction; explicit roots only.
+- **AFDrive-style file vault:** folder-by-folder browsing, create folders, upload, download, rename, copy files and bounded directory trees, move files/folders, delete and create ZIP archives; safe ZIP extraction; explicit roots only.
 - **Archive hygiene:** scan selected folders for byte-identical duplicates using SHA-256, with bounded scan sizes.
 - **Personal File Archive-style catalogue:** file metadata, modified dates, sizes, type detection, SHA-256 and text previews.
-- **Kiwix library discovery:** finds local .zim archives. The reader itself is not bundled or launched yet.
+- **Kiwix library:** discovers local .zim archives and can launch an already-installed `kiwix-serve` bound strictly to `127.0.0.1`; no reader runtime or ZIM content is bundled.
 - **Grimoire-style knowledge library:** import local ZIP packs containing Markdown, text, YAML, JSON, Python and shell reference files; browse and search imported material offline.
 - **Uplink-style retrieval:** local SQLite FTS search across notes, bookmarks and selected documents; optional PDF, DOCX, XLSX and XLS extraction when their Python libraries are already installed.
 - **Termux diagnostics:** detects Termux, Python, Git and selected local commands, reports available storage, and can list locally installed packages from the dpkg database. It does not install packages or run arbitrary shell commands.
 - **Claude-BugHunter reference library:** import and search local Agent Skill files and supporting scripts. Imported scripts are stored as reference material and are never executed.
-- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates and an expanded bounded text-transform pipeline (Base64, hex, URL, ROT13, binary, JSON, HTML, gzip, line operations and text statistics).
+- **CyberDesk-inspired offline toolkit:** file triage, magic-byte identification, hashes, entropy, printable strings, ZIP safety audit, IOC extraction (IPs/domains/URLs/emails/hashes), JWT decoding without verification, hash-format hints, Caesar/Atbash/ROT47, single-byte XOR candidates, ELF/PE headers (including PE section metadata), classic PCAP packet summaries (Ethernet, IPv4/IPv6, TCP/UDP) and bounded text transforms.
 - Notes, collections, bookmarks, IPv4/IPv6 calculations, and JSON backup export/import.
 
 ## Run on Android / Termux
@@ -68,7 +68,7 @@ Run local regression tests with `python -m unittest discover -s tests -v`. They 
 See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstream license notes.
 
 
-## Compact offline integrations (0.4.0)
+## Compact offline integrations (0.5.0)
 
 - **AFDrive / Personal File Archive:** local file vault with safe folder browsing, upload, create, rename, copy, ZIP creation/extraction, metadata, previews and duplicate detection. Files stay in configured local roots.
 - **Uplink / Grimoire:** standard-library retrieval helpers and SQLite FTS5/BM25 search over local notes, imported Markdown/playbooks and selected folders. Queries are safely quoted and fall back from AND to OR. No embeddings, model, or cloud service.
