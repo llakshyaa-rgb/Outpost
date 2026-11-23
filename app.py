@@ -430,9 +430,9 @@ class Handler(BaseHTTPRequestHandler):
                         members=[]; warnings=[]
                         for info in archive.infolist()[:2000]:
                             name=info.filename
-                            normalized=name.replace("\\\\","/")
+                            normalized=name.replace("\\","/")
                             parts=Path(normalized).parts
-                            unsafe=Path(normalized).is_absolute() or ".." in parts or name.startswith(("/", "\\\\"))
+                            unsafe=Path(normalized).is_absolute() or ".." in parts or normalized.startswith("/")
                             is_link=stat.S_ISLNK((info.external_attr>>16)&0xFFFF)
                             if unsafe or is_link: warnings.append({"entry":name,"reason":"path traversal or symlink entry"})
                             ratio=round(info.file_size/max(1,info.compress_size),1)
