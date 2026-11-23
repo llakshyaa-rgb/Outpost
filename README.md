@@ -6,7 +6,9 @@
 
 - Local-only Python server (standard library; no pip dependencies).
 - SQLite database with full-text search (FTS5 when available).
-- Notes, saved references, and knowledge collections.
+- Create, edit, and delete notes; organise saved references into collections.
+- Global search across indexed files, notes, and saved references.
+- Portable JSON backup export and additive restore.
 - Explicit-root file indexing and local text search.
 - Responsive dark command-centre UI with no remote font or CDN dependency.
 - Health/status endpoint and safe local API.
@@ -34,15 +36,16 @@ OUTPOST does not scan your device automatically. Add only folders you choose in 
 - Configuration: `data/config.json`
 - Bind address: `127.0.0.1` only.
 - No shell execution, arbitrary URL fetching, or remote bind option.
-- Back up the `data/` directory to preserve your notes and index.
+- Use **Settings → Export backup** to save notes, collections, and bookmarks as JSON; **Import backup** adds those records without deleting existing data.
+- Copy the `data/` directory to preserve the local database and file index as well.
 
 ## Roadmap
 
-1. Validate on Android/Termux.
-2. Add optional Kiwix ZIM discovery/launch integration.
-3. Add local-network pairing with explicit approval and authentication.
-4. Add import adapters for selected open-source tools after license and platform review.
-5. Add encrypted backups and restore.
+1. Validate on Android/Termux across different storage permission setups.
+2. Add optional Kiwix ZIM discovery and offline library launch.
+3. Add authenticated local-network pairing with explicit approval.
+4. Add optional adapters for selected open-source tools after license and platform review.
+5. Add encrypted backups.
 
 OUTPOST is a local knowledge and productivity workspace, not an offensive security tool.
 ## Optional integrations (design review)
