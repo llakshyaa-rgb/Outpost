@@ -1,32 +1,37 @@
-# OUTPOST module integration map
+# OUTPOST integration map
 
-This file records the eight selected upstream projects and how OUTPOST uses them. OUTPOST remains a single lightweight Python/SQLite application. It does not blindly copy whole upstream applications or execute third-party code.
+OUTPOST is one lightweight local application. The eight selected projects are the design and capability sources for its modules; this repository does not claim to contain eight complete upstream applications. The current implementation is native Python/SQLite and browser UI, with no third-party runtime packages.
 
-| Selected project | Upstream | OUTPOST role | Integration |
+| Selected project | Intended capability | Current OUTPOST implementation | Boundary |
 |---|---|---|---|
-| AFDrive | https://github.com/ashwithfrank/AFDrive | Local file vault and safe filesystem patterns | Native file archive view; OUTPOST keeps its own loopback-only server and storage policy rather than importing Flask/auth code wholesale. |
-| Kiwix JS | https://github.com/kiwix/kiwix-js | Offline ZIM reader | Detect local .zim archives in data/zim and configured roots; open the official Kiwix reader separately to select the archive. ZIM files are not copied into Git. |
-| Personal File Archive | https://github.com/kevin0309/PersonalFileArchive | Personal file catalogue/archive | OUTPOST file catalogue, metadata and inspection layer. Upstream repository is currently minimal; no code is copied. |
-| Grimoire | https://github.com/PentHertz/grimoire | Offline searchable security knowledge | Local knowledge/security folder is automatically indexed. Import only trusted, licensed Markdown playbooks; update/download is a separate online step. |
-| Termux-Tools | https://github.com/termux/termux-tools | Android environment utilities | Read-only detection of Termux, Python, Git and selected commands. OUTPOST does not execute package-manager commands automatically. |
-| Uplink | https://github.com/evanderpool/uplink | Local document retrieval and source-grounded search | OUTPOST reuses the local-first design principles: selected roots, SQLite FTS, source paths and local-only retrieval. Uplink's full Python 3.11+ package is not embedded into this Python 3.10+ stdlib core. |
-| Claude-BugHunter | https://github.com/elementalsouls/Claude-BugHunter | Authorized bug-hunting methodology and Agent Skills | Optional local skills in knowledge/bughunter; searchable offline as text. Skills are reference material, not an autonomous scanner. |
-| CyberDesk | https://github.com/JerenzeLevi/cyberdesk | Local defensive security/file-analysis workbench | OUTPOST adds safe file metadata, SHA-256 and text preview. No uploaded file is executed and no active scan is launched. |
+| AFDrive | Local file vault and device-first file management | File archive workspace; explicit-root browsing; metadata; safe previews; SHA-256 | Native implementation, not a vendored AFDrive server |
+| Kiwix JS | Offline ZIM reader | Finds .zim archives in data/zim/ and selected roots; provides Kiwix reader handoff | Reader and archive must be obtained separately |
+| Personal File Archive | Personal file catalogue | Local file catalogue, metadata and indexed text search | Native implementation; upstream code is not copied |
+| Grimoire | Security knowledge and playbooks | Local knowledge/security/ pack is indexed and searchable | Add trusted, licensed source material yourself |
+| Termux-Tools | Android terminal environment | Detects Termux, Python, Git and selected installed commands | Read-only diagnostics; no commands or package installs are triggered |
+| Uplink | Local document retrieval | SQLite FTS search across selected files, notes and bookmarks, with source paths/snippets | Native local retrieval; no cloud model or network dependency |
+| Claude-BugHunter | Bug-hunting methodology / Agent Skills | knowledge/bughunter/ is indexed for offline reference | Skills are not executed; testing must be authorized |
+| CyberDesk | Defensive security/file analysis | Security desk, file signature detection, SHA-256 and bounded text previews | Safe static inspection only; no active scanner or file execution |
 
 ## Local folders
 
-- `data/zim/`: place ZIM archives here (large archives should not be committed).
-- `knowledge/security/`: curated, licensed Markdown/YAML knowledge and playbooks.
-- `knowledge/bughunter/`: optional Agent Skills and `SKILL.md` reference material.
+- data/zim/: place ZIM archives here; large binary files are excluded from Git.
+- knowledge/security/: add trusted, licensed Markdown/YAML defensive references.
+- knowledge/bughunter/: add optional SKILL.md files and supporting text references.
 
-These knowledge folders are automatically included in OUTPOST's local text index. Existing selected index roots continue to work.
+The built-in knowledge folders are indexed automatically. Other roots must be explicitly added in Settings. Indexing skips hidden dependency directories and oversized files. It does not follow symlinked directories or index files whose resolved paths escape the selected root.
 
 ## Offline and safety boundaries
 
-- Core OUTPOST runs without internet or third-party services.
-- Kiwix content must be downloaded separately before it can be read offline.
-- Grimoire source repositories must be fetched before their docs can be used offline; only trusted sources should be imported.
-- CyberDesk/Claude-BugHunter capabilities are not automatically executed. Use security workflows only against systems you own or are explicitly authorized to test.
-- The Termux integration reports what is installed; it does not install packages or run shell commands.
-- File inspection is restricted to configured roots plus OUTPOST's knowledge folder. It calculates SHA-256 and previews supported text only.
-- Third-party upstream code remains under its own license; check and preserve each license before vendoring code or assets.
+- The core app works without internet after cloning.
+- Kiwix requires a separately installed/available reader and previously downloaded ZIM content.
+- Grimoire and BugHunter reference material must be imported locally before offline search can find it.
+- No selected third-party code is executed automatically.
+- The file inspector reads file bytes to identify type and calculate SHA-256; it previews only supported text files and never executes content.
+- The Termux adapter reports environment details but does not run shell commands.
+- The IP toolbox calculates ranges only; it does not probe or scan networks.
+- Check each upstream project's license before copying its code, data or assets.
+
+## Validation still required
+
+The repository's UI and API wiring are committed, but the full runtime must be tested on the target Android/Termux device. In particular, confirm shared-storage permissions, SQLite FTS5 availability, large-folder indexing performance, and Kiwix reader handoff.
