@@ -439,6 +439,21 @@ class Handler(BaseHTTPRequestHandler):
             if not stats(str(DATA/"wiki"/"wiki.db"))["ready"]:
                 self.send_json({"error":"Import a Wikipedia XML dump first"},409); return
             self.send_json(search(str(DATA/"wiki"/"wiki.db"),q)); return
+        if u.path == "/api/wiki/image":
+            from urllib.parse import parse_qs
+            import re
+            raw=parse_qs(u.query).get("name",[""])[0]
+            wanted=Path(raw).name.replace("_"," ").casefold()
+            folder=DATA/"wiki"/"images"
+            try:
+                match=next((p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in {".jpg",".jpeg",".png",".webp",".gif"} and p.stem.replace("_"," ").casefold()==Path(wanted).stem.casefold()),None)
+                if match is None: self.send_json({"error":"Image is not in the curated local image pack"},404); return
+                body=match.read_bytes()
+                self.send_response(200); self.send_header("Content-Type",mimetypes.guess_type(str(match))[0] or "application/octet-stream")
+                self.send_header("Content-Length",str(len(body))); self.send_header("Cache-Control","public, max-age=3600"); self.send_header("X-Content-Type-Options","nosniff")
+                self.end_headers(); self.wfile.write(body); return
+            except OSError as e:
+                self.send_json({"error":str(e)},404); return
         if u.path == "/api/wiki/article":
             from urllib.parse import parse_qs
             from outpost_modules.wiki_compact import article
@@ -527,6 +542,37 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/wiki/images/import":
+            import zipfile, stat
+            try:
+                source=managed_path(str(data.get("path","")))
+                if not source.is_file() or source.suffix.lower()!=".zip": raise ValueError("Choose a ZIP containing your selected images")
+                if source.stat().st_size>500_000_000: raise ValueError("Image ZIP exceeds 500 MB")
+                target=DATA/"wiki"/"images"; target.mkdir(parents=True,exist_ok=True)
+                added=skipped=total=0
+                allowed={".jpg",".jpeg",".png",".webp",".gif"}
+                with zipfile.ZipFile(source) as archive:
+                    entries=archive.infolist()
+                    if len(entries)>500: raise ValueError("Image pack contains more than 500 entries")
+                    for info in entries:
+                        name=info.filename.replace("\\","/")
+                        parts=Path(name).parts
+                        if info.is_dir() or Path(name).is_absolute() or ".." in parts or (len(name)>1 and name[1]==":"):
+                            skipped+=1; continue
+                        base=Path(name).name
+                        ext=Path(base).suffix.lower()
+                        if ext not in allowed or info.file_size>5_000_000 or total+info.file_size>150_000_000:
+                            skipped+=1; continue
+                        if info.file_size==0: skipped+=1; continue
+                        raw=archive.read(info)
+                        if len(raw)!=info.file_size: skipped+=1; continue
+                        dest=target/base
+                        if dest.exists(): skipped+=1; continue
+                        dest.write_bytes(raw); total+=len(raw); added+=1
+                        if added>=120: break
+                self.send_json({"ok":True,"images_added":added,"skipped":skipped,"bytes":total,"note":"Only raster image files were imported; no scripts or SVG files are accepted."},201); return
+            except (OSError,ValueError,zipfile.BadZipFile) as e:
+                self.send_json({"error":str(e)},400); return
         if self.path == "/api/wiki/import":
             global WIKI_IMPORT_THREAD, WIKI_IMPORT_STATE
             try:
