@@ -390,7 +390,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
         if self.path == "/api/security/tool":
-            import hashlib, math, re, base64, binascii
+            import hashlib, math, re, base64, binascii, io, zipfile, stat
             try:
                 mode=str(data.get("tool",""))
                 text_input=str(data.get("text",""))[:200000]
@@ -410,8 +410,33 @@ class Handler(BaseHTTPRequestHandler):
                     signatures=[(b"\x7fELF","ELF executable"),(b"MZ","Windows executable / DOS"),(b"PK\x03\x04","ZIP / Office / APK"),(b"%PDF-","PDF document"),(b"\x89PNG\r\n\x1a\n","PNG image"),(b"\xff\xd8\xff","JPEG image"),(b"GIF8","GIF image"),(b"SQLite format 3","SQLite database"),(b"RIFF","RIFF media container"),(b"OggS","Ogg media"),(b"pcap","Packet capture")]
                     kind=next((label for magic,label in signatures if raw.startswith(magic)),"Text or unknown binary")
                     strings=re.findall(rb"[\x20-\x7e]{5,}",raw[:2_000_000])
-                    result={"type":kind,"size":len(raw),"sha256":hashlib.sha256(raw).hexdigest(),"md5":hashlib.md5(raw).hexdigest(),"sample_entropy":entropy,"strings":[x.decode("ascii","replace") for x in strings[:100]],"note":"Static triage only; no execution or active probing."}
+                    utf16=re.findall(rb"(?:[\x20-\x7e]\x00){5,}",raw[:2_000_000])
+                    blocks=[]
+                    for offset in range(0,min(len(raw),262144),4096):
+                        block=raw[offset:offset+4096]
+                        freq={}
+                        for byte in block: freq[byte]=freq.get(byte,0)+1
+                        h=-sum((n/len(block))*math.log2(n/len(block)) for n in freq.values()) if block else 0
+                        blocks.append({"offset":offset,"entropy":round(h,3)})
+                    embedded=[]
+                    for magic,label in signatures:
+                        pos=raw.find(magic,1)
+                        if pos>0: embedded.append({"offset":pos,"type":label})
+                    result={"type":kind,"size":len(raw),"sha256":hashlib.sha256(raw).hexdigest(),"sha1":hashlib.sha1(raw).hexdigest(),"md5":hashlib.md5(raw).hexdigest(),"sample_entropy":entropy,"block_entropy":blocks,"embedded_signatures":embedded[:30],"strings":[x.decode("ascii","replace") for x in strings[:100]],"utf16le_strings":[x.decode("utf-16le","replace") for x in utf16[:50]],"note":"Static triage only; no execution or active probing."}
                     self.send_json(result); return
+                if mode=="zip-audit":
+                    if not raw: raise ValueError("Choose a ZIP file")
+                    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                        members=[]; warnings=[]
+                        for info in archive.infolist()[:2000]:
+                            name=info.filename
+                            parts=Path(name).parts
+                            unsafe=Path(name).is_absolute() or ".." in parts or name.startswith(("/", "\\\\"))
+                            is_link=stat.S_ISLNK((info.external_attr>>16)&0xFFFF)
+                            if unsafe or is_link: warnings.append({"entry":name,"reason":"path traversal or symlink entry"})
+                            ratio=round(info.file_size/max(1,info.compress_size),1)
+                            members.append({"name":name,"size":info.file_size,"compressed":info.compress_size,"ratio":ratio,"directory":info.is_dir(),"unsafe":unsafe or is_link})
+                        self.send_json({"entries":len(archive.infolist()),"listed":len(members),"total_uncompressed":sum(x["size"] for x in members),"warnings":warnings[:100],"members":members,"note":"Archive inspected without extracting files."}); return
                 if mode=="hashid":
                     value=text_input.strip()
                     if not value: raise ValueError("Enter a hash")
