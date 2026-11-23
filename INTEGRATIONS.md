@@ -46,3 +46,10 @@ The inspected repository metadata identifies Kiwix JS and Termux-Tools as GPL-3.
 ## Device validation
 
 The current branch has not yet been runtime-tested on the target Android/Termux device. Test folder permissions, uploads/downloads, FTS5, optional document extractors, large imports and large-folder indexing before relying on it for important files.
+
+
+## 0.4.0 implementation notes
+
+The lightweight integration modules in `outpost_modules/` are first-party OUTPOST code using Python's standard library. `retrieval.py` supplies safe FTS query construction and bounded overlapping passages. `cyberdesk.py` supplies static string extraction, hex display, embedded signature detection, ELF/PE header parsing and classic PCAP metadata parsing. The UI exposes these tools through the existing local security endpoint.
+
+The `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` file is adapted from the upstream skill index only; see `ATTRIBUTION.txt`. It is a searchable reference catalog, not a claim that all original skill files are bundled. Kiwix JS's complete reader runtime is not vendored due its size; OUTPOST only discovers local ZIM archives and reports whether `kiwix-serve` is present. No automatic install or launch occurs.
