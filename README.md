@@ -50,7 +50,7 @@ The JSON backup includes notes, collections and bookmarks. It does not include y
 - Core runtime makes no external API calls and uses no CDN, cloud account, analytics or remote fonts.
 - The app binds to `127.0.0.1` only.
 - Online OSINT, remote recon, web lookups, cloud integrations, remote source syncing and live network scanning are intentionally excluded for now.
-- Kiwix JS itself is not bundled; this build only discovers local ZIM files.
+- Kiwix JS PWA assets are not bundled; an already-installed `kiwix-serve` can optionally serve a local ZIM on loopback.
 - Optional PDF/Office extraction works only if the relevant libraries are already installed. The base app requires no pip packages.
 
 ## Safety and resource limits
@@ -75,6 +75,6 @@ See [INTEGRATIONS.md](INTEGRATIONS.md) for the exact module boundaries and upstr
 - **Claude-BugHunter:** a compact, searchable index of 83 skill descriptions is included in `knowledge/bughunter/CLAUDE_BUGHUNTER_INDEX.md` with attribution. It is reference material, not a full Claude Code plugin; no upstream scripts are executed.
 - **CyberDesk:** lightweight static analysis for strings, hex, ELF/PE headers, embedded file signatures and PCAP metadata, alongside the existing hashes, entropy, IOC, JWT, ZIP and transform tools. No heavy native dependencies.
 - **Termux-Tools:** read-only Termux diagnostics, command availability and local package inventory. No automatic package installation or shell execution.
-- **Kiwix JS:** local ZIM discovery and metadata only. Full reading requires a separately installed Kiwix reader; OUTPOST deliberately does not bundle its large WASM runtime or download content.
+- **Kiwix JS:** local ZIM discovery and metadata, plus optional launch of an already-installed `kiwix-serve` bound to loopback. OUTPOST does not bundle a reader runtime or download content.
 
 Core runtime remains loopback-only and makes no external network requests. Optional file formats requiring third-party libraries stay unavailable unless the user has installed those libraries. No ZIM/wordlist/corpus is bundled, keeping repository and runtime footprint small.
