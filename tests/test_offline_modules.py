@@ -38,6 +38,34 @@ class CyberDeskTests(unittest.TestCase):
         self.assertEqual(result["machine"], "x86-64")
         self.assertEqual(result["entry_point"], "0x401000")
 
+    def test_pcap_decodes_ethernet_ipv4_udp(self):
+        ethernet = bytes.fromhex("00112233445566778899aabb0800")
+        ip = bytes.fromhex("4500001c0001000040110000c0a80102c0a80101")
+        udp = bytes.fromhex("1f90003500080000")
+        frame = ethernet + ip + udp
+        record = struct.pack("<IIII", 1, 2, len(frame), len(frame)) + frame
+        raw = bytes.fromhex("d4c3b2a1") + struct.pack("<HHiIII", 2, 4, 0, 0, 65535, 1) + record
+        packet = pcap_summary(raw)["packet_samples"][0]
+        self.assertEqual(packet["network"], "IPv4")
+        self.assertEqual(packet["protocol"], "UDP")
+        self.assertEqual(packet["source_port"], 8080)
+        self.assertEqual(packet["destination_port"], 53)
+
+    def test_pe_header_lists_section_metadata(self):
+        raw = bytearray(512)
+        raw[:2] = b"MZ"
+        struct.pack_into("<I", raw, 0x3c, 0x80)
+        raw[0x80:0x84] = b"PE\x00\x00"
+        struct.pack_into("<HHIIIHH", raw, 0x84, 0x8664, 1, 0, 0, 0, 0xF0, 0x22)
+        raw[0x98:0x9a] = b"\x0b\x02"
+        raw[0x188:0x190] = b".text\x00\x00\x00"
+        struct.pack_into("<IIII", raw, 0x190, 0x100, 0x1000, 0x200, 0x400)
+        struct.pack_into("<I", raw, 0x1b0, 0x60000020)
+        from outpost_modules.cyberdesk import pe_header
+        section = pe_header(bytes(raw))["section_table"][0]
+        self.assertEqual(section["name"], ".text")
+        self.assertEqual(section["raw_size"], 0x200)
+
     def test_pcap_header(self):
         raw = b"\xd4\xc3\xb2\xa1" + struct.pack("<HHiIII", 2, 4, 0, 0, 65535, 1)
         result = pcap_summary(raw)
