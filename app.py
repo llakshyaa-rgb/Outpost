@@ -259,14 +259,14 @@ class Handler(BaseHTTPRequestHandler):
             bug_count=sum(1 for folder in (knowledge/"bughunter",knowledge/"imported") if folder.is_dir() for p in folder.rglob("SKILL.md"))
             security_count=sum(1 for folder in (knowledge/"security",knowledge/"imported") if folder.is_dir() for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in {".md",".txt",".rst",".yaml",".yml"})
             modules=[
-              {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"OUTPOST uses its own loopback-only file layer; AFDrive is the architecture reference."},
-              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"partial","count":zim_count,"detail":"Local ZIM archive discovery is available; the reader itself is not bundled."},
-              {"id":"pfa","name":"Personal File Archive","role":"Local archive and incremental document indexing","status":"core","detail":"Unified local file index and search are built into OUTPOST."},
-              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Local knowledge folders and imported packs are indexed and searchable offline."},
-              {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only Termux environment and installed-command detection; no shell commands are run by the dashboard."},
-              {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"OUTPOST search is local and indexes selected roots; citation-style source paths are shown."},
-              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"partial" if bug_count else "waiting","count":bug_count,"detail":"Local Agent Skills and support files can be imported and searched; scripts are never executed."},
-              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"partial","detail":"Static file triage, ZIP audit, hashes, entropy, strings, IOC extraction, JWT decoding, classical ciphers and local transforms are available."}
+              {"id":"afdrive","name":"AFDrive","role":"Local file vault and device-first file management","status":"core","detail":"Local folder browsing, upload, create, rename, copy, ZIP/extract, duplicate detection and safe previews are built in."},
+              {"id":"kiwix","name":"Kiwix JS","role":"Offline ZIM library reader","status":"partial","count":zim_count,"detail":"Local ZIM discovery and header metadata are built in. Full Kiwix reading remains an optional separately installed reader to avoid bundling several MB of WASM/runtime assets."},
+              {"id":"pfa","name":"Personal File Archive","role":"Local archive and document indexing","status":"core","detail":"Local archive management, file metadata, previews, safe ZIP operations, duplicate detection and incremental local document indexing."},
+              {"id":"grimoire","name":"Grimoire","role":"Offline security knowledge and playbook search","status":"ready" if security_count else "waiting","count":security_count,"detail":"Local knowledge packs, Markdown references, imported playbooks and bounded FTS search are available without network access."},
+              {"id":"termux","name":"Termux-Tools","role":"Android terminal utilities and environment checks","status":"ready" if os.environ.get("PREFIX","").startswith("/data/data/com.termux") else "partial","detail":"Read-only device diagnostics, command availability and installed dpkg package inventory. No shell commands are run by the dashboard."},
+              {"id":"uplink","name":"Uplink","role":"Local document retrieval with citations","status":"core","detail":"SQLite FTS5 BM25 search with safely quoted AND/OR query fallback, snippets and local source paths; retrieval helpers use only Python standard library."},
+              {"id":"bughunter","name":"Claude-BugHunter","role":"Authorized security testing playbooks","status":"ready" if security_count else "partial","count":bug_count,"detail":"Compact offline index of 83 Claude-BugHunter skill descriptions is included; full plugin scripts and network tooling are intentionally excluded."},
+              {"id":"cyberdesk","name":"CyberDesk","role":"Local security and file-analysis workbench","status":"core","detail":"Static file triage, ELF/PE headers, strings, hex view, embedded signature carving, PCAP summary, ZIP audit, hashes, entropy, IOC extraction, JWT decode and local transforms."}
             ]
             self.send_json(modules); return
         if u.path == "/api/termux/packages":
@@ -288,7 +288,7 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/system":
             import platform, shutil, sys
             termux=os.environ.get("PREFIX","").startswith("/data/data/com.termux") or "com.termux" in os.environ.get("HOME","")
-            commands=["pkg","termux-info","termux-setup-storage","termux-open-url","git","python"]
+            commands=["pkg","termux-info","termux-setup-storage","termux-open-url","git","python","kiwix-serve"]
             try:
                 disk=shutil.disk_usage(str(Path.home()))
                 disk_info={"total":disk.total,"used":disk.used,"free":disk.free}
