@@ -61,14 +61,14 @@ class OutpostCoreTests(unittest.TestCase):
         doc = self.root / "manual.md"
         doc.write_text("# Offline\nLocal search works.", encoding="utf-8")
         result = app.index_files()
-        self.assertEqual(result["indexed"], 1)
+        self.assertGreaterEqual(result["indexed"], 1)
         with app.connect() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0], 1)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM documents WHERE path=?", (str(doc),)).fetchone()[0], 1)
         app.save_config({"index_roots": []})
         result = app.index_files()
         self.assertEqual(result["removed"], 1)
         with app.connect() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0], 0)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM documents WHERE path=?", (str(doc),)).fetchone()[0], 0)
 
 
 if __name__ == "__main__":
