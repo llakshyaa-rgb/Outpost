@@ -500,7 +500,7 @@ class Handler(BaseHTTPRequestHandler):
                             name=info.filename
                             normalized=name.replace("\\","/")
                             parts=Path(normalized).parts
-                            unsafe=Path(normalized).is_absolute() or ".." in parts or normalized.startswith("/")
+                            unsafe=Path(normalized).is_absolute() or ".." in parts or normalized.startswith("/") or (len(normalized)>1 and normalized[0].isalpha() and normalized[1]==":")
                             is_link=stat.S_ISLNK((info.external_attr>>16)&0xFFFF)
                             if unsafe or is_link: warnings.append({"entry":name,"reason":"path traversal or symlink entry"})
                             ratio=round(info.file_size/max(1,info.compress_size),1)
@@ -662,10 +662,10 @@ class Handler(BaseHTTPRequestHandler):
                             if len(entries)>500: raise ValueError("ZIP contains more than 500 entries")
                             total=0
                             for info in entries:
-                                rawname=info.filename.replace("\\\\","/")
+                                rawname=info.filename.replace("\\","/")
                                 rel=Path(rawname)
                                 mode=(info.external_attr>>16)&0xFFFF
-                                if rel.is_absolute() or ".." in rel.parts or rawname.startswith("/") or stat.S_ISLNK(mode): continue
+                                if rel.is_absolute() or ".." in rel.parts or rawname.startswith("/") or (len(rawname)>1 and rawname[0].isalpha() and rawname[1]==":") or stat.S_ISLNK(mode): continue
                                 if info.file_size>20_000_000: continue
                                 total+=info.file_size
                                 if total>100_000_000: raise ValueError("Expanded ZIP exceeds 100 MB")
@@ -715,9 +715,9 @@ class Handler(BaseHTTPRequestHandler):
                         if info.is_dir(): continue
                         mode=(info.external_attr>>16)&0xFFFF
                         if stat.S_ISLNK(mode): skipped+=1; continue
-                        normalized=info.filename.replace("\\\\","/")
+                        normalized=info.filename.replace("\\","/")
                         rel=Path(normalized)
-                        if rel.is_absolute() or ".." in rel.parts or rel.suffix.lower() not in allowed: skipped+=1; continue
+                        if rel.is_absolute() or ".." in rel.parts or normalized.startswith("/") or (len(normalized)>1 and normalized[0].isalpha() and normalized[1]==":") or rel.suffix.lower() not in allowed: skipped+=1; continue
                         if info.file_size>5_000_000: skipped+=1; continue
                         if info.compress_size and info.file_size/max(1,info.compress_size)>200: skipped+=1; continue
                         total+=info.file_size
