@@ -86,6 +86,13 @@ $('#wiki-import').onclick=async()=>{
  catch(e){toast(e.message)}finally{b.disabled=false}
 };
 $('#wiki-refresh').onclick=loadWikiStatus;
+$('#wiki-images-import').onclick=async()=>{
+ const path=$('#wiki-image-pack').value.trim();if(!path){toast('Enter the path to a local image ZIP');return}
+ const b=$('#wiki-images-import');b.disabled=true;
+ try{const d=await api('wiki/images/import',{method:'POST',body:JSON.stringify({path})});toast('Added '+d.images_added+' curated images');}
+ catch(e){toast(e.message)}finally{b.disabled=false}
+};
+
 async function runWikiSearch(){
  const q=$('#wiki-q').value.trim();if(!q)return;
  const box=$('#wiki-results');box.textContent='Searching local article index…';
@@ -101,7 +108,7 @@ $('#wiki-results').onclick=async e=>{
  const b=e.target.closest('[data-wiki-id]');if(!b)return;
  try{
   const d=await api('wiki/article?id='+encodeURIComponent(b.dataset.wikiId));
-  const imgs=d.images.length?'<p class="muted">Useful image references (not downloaded): '+d.images.map(esc).join(' · ')+'</p>':'';
+  const imgs=d.images.length?'<div class="wiki-images">'+d.images.map(name=>'<figure><img loading="lazy" src="/api/wiki/image?name='+encodeURIComponent(name)+'" alt="'+esc(name)+'" onerror="this.closest(\'figure\').remove()"><figcaption>'+esc(name)+'</figcaption></figure>').join('')+'</div>':'';
   $('#wiki-reader').innerHTML='<article class="item"><h3>'+esc(d.title)+'</h3><small>'+Number(d.chars).toLocaleString()+' characters · locally stored</small>'+imgs+'<pre class="wiki-article">'+esc(d.body)+'</pre></article>';
  }catch(x){toast(x.message)}
 };
