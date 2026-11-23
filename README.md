@@ -1,6 +1,6 @@
 # OUTPOST
 
-**Your own ground. Your own rules.** OUTPOST 0.8.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
+**Your own ground. Your own rules.** OUTPOST 0.9.0 is an offline-first local workspace for Android/Termux and Linux. It combines a navigable file vault, offline knowledge library, local document retrieval, notes, and a defensive analysis toolkit.
 
 ## Current offline feature set
 
@@ -121,3 +121,10 @@ python scripts/install_kiwix.py
 The installer asks before making a one-time online download, fetches the official Kiwix JS source at a pinned commit, installs the temporary Node build dependencies, and creates a production PWA build under `static/kiwix/`. Temporary source and build dependencies are removed when the installer exits. The generated reader contains libzim WebAssembly and the XZ/Zstandard decoders required for standard ZIM archives. Once installed, launch it from Offline library; it does not require online services to read local archives.
 
 Requirements: Node.js 18.18+ and npm in Termux, and enough temporary storage for the source/build dependency install. The final reader is expected to remain comfortably below OUTPOST's 5 GB app/tools budget; the ZIM content archives are separate user data. The source revision and GPL-3.0 license are recorded in the installed reader folder.
+
+
+## OUTPOST 0.9.0 — full local integrations
+
+- The full Kiwix JS PWA can now be built and installed locally with `python scripts/install_kiwix.py`. It includes the official libzim WASM runtime and XZ/Zstandard decoders, with the PWA/service-worker directory layout preserved. Generated files stay under gitignored `static/kiwix/`.
+- Uplink now includes user feedback on passages, feedback-weighted ranking, an ask queue with resolution notes, saved retrieval evaluations (expected-source hit and reciprocal rank), and local JSON reports.
+- CyberDesk adds offline text diff, CSV structure summary and JSON structure inspection.
