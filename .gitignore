@@ -4,3 +4,9 @@ data/*.db
 data/*.db-shm
 data/*.db-wal
 data/config.json
+
+# Large offline content archives are local data, never source files
+*.zim
+*.zim.*
+# Local backup exports
+outpost-backup-*.json
