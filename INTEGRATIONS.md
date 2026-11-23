@@ -97,3 +97,14 @@ The repository includes regression tests for the original file/security/retrieva
 The installer pins upstream commit `e809ccd993cca12ded4dfc40b9ad79233ed71a19` from [kiwix/kiwix-js](https://github.com/kiwix/kiwix-js), licensed GPL-3.0. It builds the official production PWA on the target device, including the libzim WASM worker, XZ and Zstandard decoders, article/search UI and media support. The generated output is stored in `static/kiwix/`; it is device-local and gitignored, not committed as compiled binaries. The installed folder contains the GPL license and exact source revision. The installer removes temporary npm dependencies and extracted source after a successful build.
 
 The first installation requires internet access for the pinned source archive and npm build dependencies. After that, the reader's UI, search engine, decoders and archive access are local. ZIM content itself is separate user data and may be several GB.
+
+
+## OUTPOST 0.9.0 additions
+
+- **Kiwix JS:** `scripts/install_kiwix.py` builds the official pinned Kiwix JS PWA on-device. It preserves the upstream `dist/www` and service-worker layout so ZIM article loading, search, media, and offline cache paths resolve under `/static/kiwix/`. The generated folder is gitignored.
+- **Uplink:** explicit helpful/unhelpful passage feedback influences ranking with a small bounded score adjustment; query evaluations are saved with expected-source hit and reciprocal-rank metrics; questions can be queued and resolved with notes; local reports include retrieval, evaluation, feedback and queue totals.
+- **CyberDesk:** offline diff, CSV structure summary and JSON structure inspection added to the existing static analysis toolbox.
+
+## First-run note
+
+The Kiwix PWA is not committed as a huge binary tree. Run `python scripts/install_kiwix.py` once on the device (Node 18.18+ and npm required). The installer downloads the pinned source and npm packages, builds the official production PWA, installs it into `static/kiwix/`, then deletes its temporary build folder. Afterward, OUTPOST and Kiwix run locally. The ZIM archives remain separate content files.
