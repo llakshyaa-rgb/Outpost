@@ -10,6 +10,37 @@ class OfflineSystemsTests(unittest.TestCase):
         self.assertGreater(len(chunks),1)
         self.assertTrue(all(len(x)<=900 for x in chunks))
 
+    def test_uplink_refresh_removes_stale_passages_and_updates_source_metadata(self):
+        db=sqlite3.connect(":memory:")
+        db.row_factory=sqlite3.Row
+        db.execute("CREATE TABLE documents(id INTEGER PRIMARY KEY,path TEXT,name TEXT,content TEXT)")
+        db.execute("INSERT INTO documents VALUES(1,'/docs/old.md','old.md','A useful offline passage')")
+        db.commit()
+        rebuild_uplink(db)
+        db.execute("UPDATE documents SET path='/docs/renamed.md',name='renamed.md' WHERE id=1")
+        db.commit()
+        rebuild_uplink(db)
+        self.assertEqual(search_uplink(db,"offline passage")[0]["path"],"/docs/renamed.md")
+        db.execute("UPDATE documents SET content='' WHERE id=1")
+        db.commit()
+        result=rebuild_uplink(db)
+        self.assertEqual(result["chunks_total"],0)
+        self.assertEqual(search_uplink(db,"offline passage"),[])
+
+    def test_uplink_chunk_limit_does_not_replace_existing_passages(self):
+        db=sqlite3.connect(":memory:")
+        db.row_factory=sqlite3.Row
+        db.execute("CREATE TABLE documents(id INTEGER PRIMARY KEY,path TEXT,name TEXT,content TEXT)")
+        db.execute("INSERT INTO documents VALUES(1,'/docs/a.md','a.md','Short original passage')")
+        db.commit()
+        rebuild_uplink(db,max_chunks=10)
+        original=search_uplink(db,"original passage")[0]["snippet"]
+        db.execute("UPDATE documents SET content=? WHERE id=1",("new content " * 1000,))
+        db.commit()
+        result=rebuild_uplink(db,max_chunks=1)
+        self.assertGreater(result["skipped"],0)
+        self.assertEqual(search_uplink(db,"original passage")[0]["snippet"],original)
+
     def test_decode_candidates_detects_base64_and_hex(self):
         b64=decode_candidates("SGVsbG8gZnJvbSBPVVRQT1NU")
         self.assertTrue(any(x["method"]=="Base64" and x["text"]=="Hello from OUTPOST" for x in b64))
