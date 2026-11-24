@@ -83,6 +83,8 @@ def save_config(cfg):
 class _VisibleHTMLText(HTMLParser):
     """Extract readable HTML text while ignoring non-visible document sections."""
     BLOCKED = {"head", "script", "style", "noscript", "template", "svg"}
+    VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+            "link", "meta", "param", "source", "track", "wbr"}
     BLOCKS = {"address", "article", "aside", "blockquote", "br", "dd", "div",
               "dl", "dt", "figcaption", "figure", "footer", "form", "h1",
               "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
@@ -91,37 +93,41 @@ class _VisibleHTMLText(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.parts = []
-        self.skip_depth = 0
+        self.skip_stack = []
 
     def handle_starttag(self, tag, attrs):
-        if self.skip_depth:
-            if tag not in {"area", "base", "br", "col", "embed", "hr", "img",
-                           "input", "link", "meta", "param", "source", "track", "wbr"}:
-                self.skip_depth += 1
+        if self.skip_stack:
+            if tag not in self.VOID:
+                self.skip_stack.append(tag)
             return
         if tag in self.BLOCKED:
-            self.skip_depth = 1
+            self.skip_stack.append(tag)
         elif tag in self.BLOCKS:
             self.parts.append("\n")
 
     def handle_startendtag(self, tag, attrs):
-        if not self.skip_depth and tag in self.BLOCKS:
-            self.parts.append("\\n")
+        if not self.skip_stack and tag in self.BLOCKS:
+            self.parts.append("\n")
 
     def handle_endtag(self, tag):
-        if self.skip_depth:
-            self.skip_depth -= 1
+        if self.skip_stack:
+            if tag in self.skip_stack:
+                while self.skip_stack:
+                    opened = self.skip_stack.pop()
+                    if opened == tag:
+                        break
         elif tag in self.BLOCKS:
-            self.parts.append("\\n")
+            self.parts.append("\n")
 
     def handle_data(self, data):
-        if not self.skip_depth and data.strip():
+        if not self.skip_stack and data.strip():
             self.parts.append(data)
 
     def text(self):
         import re
-        lines = [" ".join(part.split()) for part in "".join(self.parts).splitlines()]
-        return re.sub(r"\\n{3,}", "\\n\\n", "\\n".join(line for line in lines if line)).strip()
+        raw = "".join(self.parts)
+        lines = [" ".join(part.split()) for part in raw.splitlines()]
+        return re.sub(r"\n{3,}", "\n\n", "\n".join(line for line in lines if line)).strip()
 
 
 def extract_document(p):
