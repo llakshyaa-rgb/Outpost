@@ -88,3 +88,16 @@
   font:10px/1.65 ui-monospace,SFMono-Regular,monospace;
 }
 #security .surface>*{min-width:0}
+
+
+/* Security Desk: constrain every child to the phone viewport and keep results copyable. */
+#security{width:100%;max-width:100%;min-width:0;overflow-x:clip}
+#security>.surface,#security>.two-col,#security .surface,#security .two-col{min-width:0;max-width:100%}
+#security .surface{overflow:hidden}
+#security .surface>*{min-width:0;max-width:100%}
+.security-output-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;max-width:100%;margin-top:14px}
+.security-output-head .eyebrow{min-width:0}
+#security-copy-output{flex:0 0 auto;min-height:38px}
+#security-copy-output:disabled{opacity:.5;cursor:not-allowed}
+#security-tool-output.tool-output{box-sizing:border-box;max-width:100%;min-width:0;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden;overflow-y:auto}
+@media(max-width:700px){#security .surface{padding:clamp(12px,3.5vw,18px)}#security-tool-output.tool-output{font-size:11px;padding:10px}.security-output-head{flex-wrap:wrap}}
