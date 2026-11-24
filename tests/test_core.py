@@ -69,6 +69,25 @@ class OutpostCoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             app.managed_path(str(link))
 
+    def test_html_index_extracts_visible_text_only(self):
+        page = self.root / "orbit.html"
+        page.write_text("""<!doctype html>
+<html><head><title>Orbit hidden title</title><style>.secret-css { color: red; }</style></head>
+<body><h1>Orbit</h1><p>Searchable visible knowledge.</p>
+<script>const secretScript = "do not index this";</script></body></html>""", encoding="utf-8")
+        extracted = app.extract_document(page)
+        self.assertIn("Orbit", extracted)
+        self.assertIn("Searchable visible knowledge.", extracted)
+        self.assertNotIn("secret-css", extracted)
+        self.assertNotIn("secretScript", extracted)
+        self.assertNotIn("<p>", extracted)
+        result = app.index_files()
+        self.assertGreaterEqual(result["indexed"], 1)
+        with app.connect() as conn:
+            row = conn.execute("SELECT content FROM documents WHERE path=?", (str(page),)).fetchone()
+        self.assertIn("Searchable visible knowledge.", row["content"])
+        self.assertNotIn("secretScript", row["content"])
+
     def test_index_and_remove_unselected_root(self):
         doc = self.root / "manual.md"
         doc.write_text("# Offline\nLocal search works.", encoding="utf-8")
