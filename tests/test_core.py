@@ -104,7 +104,7 @@ class OutpostCoreTests(unittest.TestCase):
 
     def test_zim_header_validation_checks_signature_and_complete_header(self):
         header = bytearray(80)
-        header[:4] = b"ZIM\\x04"
+        header[:4] = b"ZIM\x04"
         struct.pack_into("<HH", header, 4, 6, 3)
         struct.pack_into("<II", header, 24, 1234, 56)
         parsed = app.parse_zim_header(header)
@@ -112,7 +112,7 @@ class OutpostCoreTests(unittest.TestCase):
         self.assertEqual(parsed["version"], "6.3")
         self.assertEqual(parsed["articles"], 1234)
         self.assertIsNone(app.parse_zim_header(b"not a zim header".ljust(80, b" ")))
-        self.assertIsNone(app.parse_zim_header(b"ZIM\\x04"))
+        self.assertIsNone(app.parse_zim_header(b"ZIM\x04"))
 
 
 if __name__ == "__main__":
