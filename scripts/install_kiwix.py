@@ -79,8 +79,8 @@ def install_bundle(built: Path, source: Path):
         built / "www" / "js" / "bundle.min.js",
         built / "service-worker.js",
     )
-    if not all(path.is_file() for path in required):
-        raise RuntimeError("Kiwix build did not produce the expected PWA entry files")
+    if not all(path.is_file() and path.stat().st_size > 0 for path in required):
+        raise RuntimeError("Kiwix build did not produce all non-empty PWA entry files")
     size = sum(p.stat().st_size for p in built.rglob("*") if p.is_file())
     if size > MAX_BUNDLE:
         raise RuntimeError(f"Built reader is too large ({size} bytes); refusing to install")
@@ -145,10 +145,17 @@ def install_bundle(built: Path, source: Path):
 
 
 def main():
-    if (DEST / "www" / "index.html").is_file():
+    required = (
+        DEST / "www" / "index.html",
+        DEST / "www" / "js" / "bundle.min.js",
+        DEST / "service-worker.js",
+    )
+    if all(path.is_file() and path.stat().st_size > 0 for path in required):
         print("Kiwix reader is already installed at", DEST)
         print("Remove static/kiwix only if you intentionally want to reinstall.")
         return 0
+    if DEST.exists():
+        print("An incomplete Kiwix reader installation was found; a fresh build will replace it safely.")
     if not sys.stdin.isatty():
         print("Run interactively to approve the one-time download and build.", file=sys.stderr)
         return 2
