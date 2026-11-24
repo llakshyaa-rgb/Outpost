@@ -738,7 +738,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error":str(e)},503)
             return
         if self.path == "/api/security/tool":
-            import hashlib, math, re, base64, binascii, io, zipfile, stat
+            import hashlib, math, re, base64, binascii, io, zipfile, stat, csv
             try:
                 mode=str(data.get("tool",""))
                 text_input=str(data.get("text",""))[:200000]
@@ -762,7 +762,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not before and not after: raise ValueError("Provide the original text and comparison text")
                     self.send_json(text_diff(before,after)); return
                 if mode=="csv-summary":
-                    import csv
                     if not raw: raise ValueError("Choose a CSV file or paste CSV text")
                     sample=raw[:2_000_000].decode("utf-8-sig",errors="replace")
                     import itertools
@@ -924,7 +923,7 @@ class Handler(BaseHTTPRequestHandler):
                         if len(doc)>200000: raise ValueError("Pipeline output limit exceeded")
                     self.send_json({"result":doc}); return
                 raise ValueError("Unknown security tool")
-            except (ValueError, OSError, binascii.Error, zipfile.BadZipFile, IndexError, KeyError) as e:
+            except (ValueError, OSError, binascii.Error, zipfile.BadZipFile, csv.Error, IndexError, KeyError) as e:
                 self.send_json({"error":str(e)},400); return
         if self.path == "/api/file/action":
             import base64, shutil
