@@ -638,6 +638,11 @@ class Handler(BaseHTTPRequestHandler):
                         result["database"]=str(final)
                         WIKI_IMPORT_STATE.update(result); WIKI_IMPORT_STATE["running"]=False
                     except Exception as exc:
+                        staging=DATA/"wiki"/"wiki.importing.db"
+                        for sidecar in (staging,Path(str(staging)+"-wal"),Path(str(staging)+"-shm")):
+                            try: sidecar.unlink()
+                            except FileNotFoundError: pass
+                            except OSError: pass
                         WIKI_IMPORT_STATE.update({"running":False,"error":str(exc)[:500]})
                 WIKI_IMPORT_THREAD=threading.Thread(target=run_wiki_import,name="outpost-wiki-import",daemon=True)
                 WIKI_IMPORT_THREAD.start()
