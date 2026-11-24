@@ -41,3 +41,26 @@
 .file-current-path{display:inline-block;max-width:100%;overflow-wrap:anywhere;vertical-align:middle}
 #file-breadcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0}
 @media(max-width:520px){.ip-result-grid{grid-template-columns:1fr}.ip-result-head{align-items:flex-start;flex-direction:column}.ip-result-head .primary{width:100%}.ip-range-legend{font-size:7px}.upload-trigger{flex:1}}
+
+/* Shared OUTPOST file chooser used by every import and upload workflow */
+.outpost-file-dialog{width:min(100%,560px);max-height:min(88dvh,760px);display:flex;flex-direction:column;gap:12px;padding:20px}
+.outpost-file-dialog h3{margin:0;font-size:19px}
+.outpost-file-hint{margin:0!important}
+.outpost-file-toolbar{display:flex;align-items:center;gap:10px}
+.outpost-file-toolbar button{flex:0 0 auto}
+.outpost-file-path{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent2);font:10px ui-monospace,monospace}
+.outpost-file-search{width:100%;padding:12px 13px;border:1px solid #526452;border-radius:9px;background:#0d1510;color:#edf2e9;font:13px system-ui;outline:none}
+.outpost-file-search:focus{border-color:#c5a36e;box-shadow:0 0 0 3px #c5a36e22}
+.outpost-file-list{min-height:150px;max-height:42dvh;overflow:auto;display:grid;align-content:start;gap:6px;padding:2px}
+.outpost-file-entry{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;border:1px solid #344638;border-radius:9px;background:#151f18;color:#edf2e9;text-align:left}
+.outpost-file-entry:active{background:#26382a}
+.outpost-file-entry-icon{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:8px;background:#28372b;color:#c5a36e;font-size:17px}
+.outpost-file-entry-main{min-width:0;flex:1}.outpost-file-entry-main b,.outpost-file-entry-main small{display:block;overflow-wrap:anywhere}.outpost-file-entry-main b{font-size:11px}.outpost-file-entry-main small{margin-top:3px;color:#91a092;font-size:9px}
+.outpost-file-entry-arrow{flex:0 0 auto;color:#c5a36e;font-size:10px}
+.outpost-file-entry.is-folder .outpost-file-entry-arrow{font-size:22px}
+.outpost-file-empty{padding:24px;text-align:center}
+.outpost-file-actions{display:flex;align-items:center;gap:9px;padding-top:5px;border-top:1px solid #344638}
+.outpost-file-spacer{flex:1}
+.upload-trigger{font:inherit;text-align:left}
+.upload-trigger:active{transform:translateY(1px)}
+@media(max-width:520px){.outpost-file-dialog{padding:16px}.outpost-file-list{max-height:38dvh}.outpost-file-actions{flex-wrap:wrap}.outpost-file-actions button{flex:1}}
