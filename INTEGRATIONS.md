@@ -108,3 +108,8 @@ The first installation requires internet access for the pinned source archive an
 ## First-run note
 
 The Kiwix PWA is not committed as a huge binary tree. Run `python scripts/install_kiwix.py` once on the device (Node 18.18+ and npm required). The installer downloads the pinned source and npm packages, builds the official production PWA, installs it into `static/kiwix/`, then deletes its temporary build folder. Afterward, OUTPOST and Kiwix run locally. The ZIM archives remain separate content files.
+
+
+## 0.9.1 consistency pass
+
+The latest pass fixed Uplink stale-source and chunk-size edge cases, added tests for the Kiwix installer source allowlist and traversal rejection, tightened the compact encyclopedia's final post-FTS storage check and failure cleanup, and made malformed CSV inspection return a handled error. These are code changes plus regression tests; they have not been executed on the target Android device from this session.
