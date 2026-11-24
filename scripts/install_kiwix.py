@@ -21,6 +21,8 @@ COMMIT = "e809ccd993cca12ded4dfc40b9ad79233ed71a19"
 ARCHIVE = f"https://codeload.github.com/kiwix/kiwix-js/zip/{COMMIT}"
 MAX_ARCHIVE = 120 * 1024 * 1024
 MAX_BUNDLE = 180 * 1024 * 1024
+MAX_EXTRACTED_SOURCE = 350 * 1024 * 1024
+MAX_SOURCE_FILES = 12000
 
 
 def node_version():
@@ -35,12 +37,17 @@ def extract_source(archive: Path, source: Path):
     source.mkdir()
     allowed_roots = ("www/", "i18n/", "_locales/", "archives/")
     allowed_files = {
-        "package.json", "package-lock.json", "rollup.config.js",
+        "package.json", "package-lock.json", "rollup.config.js", "babel.config.js",
         "LICENSE-GPLv3.txt", "CHANGELOG.md", "service-worker.js",
         "replayWorker.js", "index.html", "backgroundscript.js",
     }
+    extracted = 0
+    copied = 0
     with zipfile.ZipFile(archive) as bundle:
-        for info in bundle.infolist():
+        infos = bundle.infolist()
+        if len(infos) > MAX_SOURCE_FILES:
+            raise RuntimeError("Upstream archive contains too many entries")
+        for info in infos:
             parts = Path(info.filename).parts
             if len(parts) < 2:
                 continue
@@ -51,10 +58,16 @@ def extract_source(archive: Path, source: Path):
                     or relative.name.startswith("manifest.")
                     or relative.name in allowed_files):
                 continue
-            target = source / relative
             if info.is_dir():
-                target.mkdir(parents=True, exist_ok=True)
+                (source / relative).mkdir(parents=True, exist_ok=True)
                 continue
+            extracted += info.file_size
+            copied += 1
+            if extracted > MAX_EXTRACTED_SOURCE:
+                raise RuntimeError("Selected Kiwix source files exceed the 350 MiB extraction limit")
+            if copied > MAX_SOURCE_FILES:
+                raise RuntimeError("Selected Kiwix source contains too many files")
+            target = source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             with bundle.open(info) as src, target.open("wb") as dst:
                 shutil.copyfileobj(src, dst)
