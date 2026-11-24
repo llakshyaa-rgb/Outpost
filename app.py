@@ -675,7 +675,6 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError,ValueError) as e:
                 self.send_json({"error":str(e)},400); return
         if self.path == "/api/zim/serve":
-            global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE
             command=shutil.which("kiwix-serve")
             if not command:
                 self.send_json({"error":"kiwix-serve is not installed. Install the Kiwix tools package separately; OUTPOST will not download or install it."},409); return
