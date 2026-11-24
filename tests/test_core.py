@@ -1,3 +1,4 @@
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -100,6 +101,18 @@ class OutpostCoreTests(unittest.TestCase):
         self.assertEqual(result["removed"], 1)
         with app.connect() as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM documents WHERE path=?", (str(doc),)).fetchone()[0], 0)
+
+    def test_zim_header_validation_checks_signature_and_complete_header(self):
+        header = bytearray(80)
+        header[:4] = b"ZIM\\x04"
+        struct.pack_into("<HH", header, 4, 6, 3)
+        struct.pack_into("<II", header, 24, 1234, 56)
+        parsed = app.parse_zim_header(header)
+        self.assertTrue(parsed["valid_header"])
+        self.assertEqual(parsed["version"], "6.3")
+        self.assertEqual(parsed["articles"], 1234)
+        self.assertIsNone(app.parse_zim_header(b"not a zim header".ljust(80, b" ")))
+        self.assertIsNone(app.parse_zim_header(b"ZIM\\x04"))
 
 
 if __name__ == "__main__":
