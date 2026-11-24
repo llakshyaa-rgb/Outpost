@@ -128,3 +128,12 @@ Requirements: Node.js 18.18+ and npm in Termux, and enough temporary storage for
 - The full Kiwix JS PWA can now be built and installed locally with `python scripts/install_kiwix.py`. It includes the official libzim WASM runtime and XZ/Zstandard decoders, with the PWA/service-worker directory layout preserved. Generated files stay under gitignored `static/kiwix/`.
 - Uplink now includes user feedback on passages, feedback-weighted ranking, an ask queue with resolution notes, saved retrieval evaluations (expected-source hit and reciprocal rank), and local JSON reports.
 - CyberDesk adds offline text diff, CSV structure summary and JSON structure inspection.
+
+
+## OUTPOST 0.9.1 consistency fixes
+
+- Uplink passage rebuild now removes stale passages for deleted/emptied documents, refreshes renamed source metadata, and enforces passage limits without deleting valid old results when an update cannot fit. Paragraph chunks remain within the configured size while long paragraphs retain overlap.
+- The Wikipedia importer checks the storage ceiling after rebuilding its FTS index and removes failed staging databases.
+- Kiwix's pinned build installer now includes the required Babel configuration and applies limits to selected source extraction; source-extraction regression tests were added.
+- The CSV inspector now reports malformed CSV input cleanly. Uplink feedback stays attached to the query that produced the displayed results.
+- These changes have regression tests in the repository; target-device runtime testing is still required.
