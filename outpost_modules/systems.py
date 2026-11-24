@@ -61,36 +61,54 @@ def ensure_uplink(conn):
 
 def rebuild_uplink(conn, max_docs=5000, max_chunks=100000):
     ensure_uplink(conn)
+    max_docs=max(1,int(max_docs)); max_chunks=max(1,int(max_chunks))
+    total_docs=conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
     docs=conn.execute("SELECT id,path,name,content FROM documents ORDER BY id LIMIT ?",(max_docs,)).fetchall()
     valid={int(d["id"]) for d in docs}
+    all_ids={int(x[0]) for x in conn.execute("SELECT id FROM documents")}
     existing={int(x[0]) for x in conn.execute("SELECT DISTINCT document_id FROM uplink_chunks")}
     removed=0
-    for did in existing-valid:
+    # Remove passages only for documents that were actually deleted, not merely
+    # beyond the current indexing cap.
+    for did in existing-all_ids:
         conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,)); removed+=1
     added=0; skipped=0; refreshed=0
     for d in docs:
         did=int(d["id"])
         body=str(d["content"] or "")
         digest=hashlib.sha256(body.encode("utf-8",errors="replace")).hexdigest()
-        old=conn.execute("SELECT content_sha FROM uplink_chunks WHERE document_id=? LIMIT 1",(did,)).fetchone()
-        if old and old[0]==digest: continue
         title=str(d["name"] or Path(d["path"]).name)
+        old=conn.execute("SELECT content_sha,path,title FROM uplink_chunks WHERE document_id=? LIMIT 1",(did,)).fetchone()
+        if not body.strip():
+            if old:
+                conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,))
+                refreshed+=1
+            else:
+                skipped+=1
+            continue
+        if old and old[0]==digest and old[1]==d["path"] and old[2]==title:
+            continue
         chunks=chunk_text(body)
-        if not chunks: skipped+=1; continue
-        if added+len(chunks)>max_chunks:
+        if not chunks:
+            skipped+=1
+            continue
+        current_total=conn.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]
+        previous=conn.execute("SELECT COUNT(*) FROM uplink_chunks WHERE document_id=?",(did,)).fetchone()[0]
+        if current_total-previous+len(chunks)>max_chunks:
             skipped+=1
             continue
         if old:
-            conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,)); refreshed+=1
+            conn.execute("DELETE FROM uplink_chunks WHERE document_id=?",(did,))
+            refreshed+=1
         for n,chunk in enumerate(chunks):
             section=f"Part {n+1}"
             conn.execute("""INSERT INTO uplink_chunks(document_id,path,title,section,body,ordinal,indexed,content_sha)
                 VALUES(?,?,?,?,?,?,?,?)""",(did,d["path"],title,section,chunk,n,time.time(),digest))
             added+=1
     conn.commit()
-    return {"documents_seen":len(docs),"chunks_added":added,"documents_removed":removed,
-            "documents_refreshed":refreshed,"skipped":skipped,
-            "chunks_total":conn.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]}
+    return {"documents_seen":len(docs),"documents_total":total_docs,"documents_capped":total_docs>max_docs,
+            "chunks_added":added,"documents_removed":removed,"documents_refreshed":refreshed,
+            "skipped":skipped,"chunks_total":conn.execute("SELECT COUNT(*) FROM uplink_chunks").fetchone()[0]}
 
 def search_uplink(conn, query: str, limit: int=10):
     ensure_uplink(conn)
