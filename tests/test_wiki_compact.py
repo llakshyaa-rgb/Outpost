@@ -2,7 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from outpost_modules.wiki_compact import _clean_wikitext, article, import_dump, search, stats
+from outpost_modules.wiki_compact import _clean_wikitext, _enforce_database_limit, article, import_dump, search, stats
+from unittest.mock import patch
 
 
 class WikiCompactTests(unittest.TestCase):
@@ -16,6 +17,14 @@ class WikiCompactTests(unittest.TestCase):
         self.assertEqual(images, ["Earth diagram.png"])
         self.assertNotIn("cite web", text)
 
+    def test_database_storage_limit_is_checked(self):
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / "wiki.db"
+            db.write_bytes(b"x" * 20)
+            with patch("outpost_modules.wiki_compact.MAX_WIKI_DB_BYTES", 10):
+                with self.assertRaises(ValueError):
+                    _enforce_database_limit(str(db))
+
     def test_stream_import_search_and_read(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -28,6 +37,7 @@ class WikiCompactTests(unittest.TestCase):
 </mediawiki>""", encoding="utf-8")
             result = import_dump(str(dump), str(db))
             self.assertEqual(result["articles_saved"], 1)
+            self.assertGreater(result["size_bytes"], 0)
             self.assertTrue(stats(str(db))["ready"])
             rows = search(str(db), "rocky planet")
             self.assertEqual(rows[0]["title"], "Earth")
