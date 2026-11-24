@@ -89,6 +89,19 @@ def _schema(conn):
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     """)
 
+def _database_bytes(db_path: str) -> int:
+    base=Path(db_path)
+    return sum(Path(str(base)+suffix).stat().st_size
+               for suffix in ("","-wal") if Path(str(base)+suffix).exists())
+
+
+def _enforce_database_limit(db_path: str):
+    size=_database_bytes(db_path)
+    if size > MAX_WIKI_DB_BYTES:
+        raise ValueError("Compact encyclopedia reached the 10 GiB storage ceiling; import stopped to protect device storage")
+    return size
+
+
 def import_dump(source: str, db_path: str, progress=None):
     path=Path(source).expanduser().resolve()
     if not path.is_file(): raise ValueError("Choose an existing Wikipedia XML dump (.xml, .bz2 or .gz)")
@@ -123,9 +136,7 @@ def import_dump(source: str, db_path: str, progress=None):
                     with conn:
                         conn.executemany("INSERT OR REPLACE INTO articles(title,body,chars,lead,images,updated) VALUES(?,?,?,?,?,?)",batch)
                     batch=[]
-                    current=sum((Path(db_path).parent/(Path(db_path).name+suffix)).stat().st_size for suffix in ("","-wal") if (Path(db_path).parent/(Path(db_path).name+suffix)).exists())
-                    if current > MAX_WIKI_DB_BYTES:
-                        raise ValueError("Compact encyclopedia reached the 10 GiB storage ceiling; import stopped to protect device storage")
+                    _enforce_database_limit(db_path)
                     if progress: progress({"pages_seen":total,"articles_saved":kept})
             if batch:
                 with conn:
@@ -135,7 +146,11 @@ def import_dump(source: str, db_path: str, progress=None):
             conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('source',?)",(path.name,))
             conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('imported_at',?)",(str(time.time()),))
             conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('pages_seen',?)",(str(total),))
-        return {"pages_seen":total,"articles_saved":kept,"database":str(db_path)}
+        # Closing the connection checkpoints the WAL; check again after the
+        # expensive FTS rebuild, which can add substantial database size.
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        final_size=_enforce_database_limit(db_path)
+        return {"pages_seen":total,"articles_saved":kept,"database":str(db_path),"size_bytes":final_size}
     finally:
         conn.close()
 
