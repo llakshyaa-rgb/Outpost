@@ -1233,7 +1233,7 @@ class Handler(BaseHTTPRequestHandler):
         try: ident=int(q.get("id",["0"])[0])
         except ValueError: ident=0
         if ident<1: self.send_json({"error":"Valid id required"},400); return
-        table={"notes":"notes","collections":"collections","bookmarks":"bookmarks"}.get(u.path)
+        table={"notes":"notes","collections":"collections","bookmarks":"bookmarks"}.get(u.path.removeprefix("/api/"))
         if not table: self.send_json({"error":"Not found"},404); return
         with connect() as c: c.execute(f"DELETE FROM {table} WHERE id=?",(ident,))
         self.send_json({"ok":True})
