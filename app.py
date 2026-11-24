@@ -297,7 +297,7 @@ class Handler(BaseHTTPRequestHandler):
             if not command:
                 self.send_json({"available":False,"packages":[],"message":"dpkg-query is not installed in this environment"}); return
             try:
-                proc=subprocess.run([command,"-W","-f=\${binary:Package}\\t\${Version}\\n"],capture_output=True,text=True,timeout=10,check=False)
+                proc=subprocess.run([command,"-W",r"-f=${binary:Package}\t${Version}\n"],capture_output=True,text=True,timeout=10,check=False)
                 if proc.returncode not in (0,1): raise RuntimeError((proc.stderr or "Package query failed")[:300])
                 lines=proc.stdout.splitlines()
                 rows=[]
@@ -1242,7 +1242,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     init_db()
-    host="127.0.0.1"; port=int(os.environ.get("OUTPOST_PORT","8765"))
+    host="127.0.0.1"; port=int(os.environ.get("OUTPOST_PORT","8771"))
     print(f"OUTPOST running at http://{host}:{port} (loopback only)")
     try: ThreadingHTTPServer((host,port),Handler).serve_forever()
     except KeyboardInterrupt: print("\nOUTPOST stopped.")
