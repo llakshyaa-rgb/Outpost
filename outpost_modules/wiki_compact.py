@@ -162,7 +162,7 @@ def stats(db_path: str):
         count=conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
         meta=dict(conn.execute("SELECT key,value FROM meta"))
     finally: conn.close()
-    return {"ready":count>0,"articles":count,"size_bytes":p.stat().st_size,"source":meta.get("source",""),"imported_at":meta.get("imported_at","")}
+    return {"ready":count>0,"articles":count,"size_bytes":_database_bytes(str(p)),"source":meta.get("source",""),"imported_at":meta.get("imported_at","")}
 
 def search(db_path: str, query: str, limit: int=30):
     q=query.strip()[:200]
