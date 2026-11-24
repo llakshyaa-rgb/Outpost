@@ -24,17 +24,61 @@ KIWIX_ARCHIVE = None
 WIKI_IMPORT_THREAD = None
 WIKI_IMPORT_STATE = {"running":False,"pages_seen":0,"articles_saved":0,"error":""}
 
+# Use the maintained official catalogue instead of stale, hard-coded
+# filenames and file sizes. OUTPOST never downloads archives automatically.
 ZIM_CATALOG = [
-    {"id":"simple-en-nopic","title":"Simple English Wikipedia — full articles, no images","file":"wikipedia_en-simple_all_nopic_2026-09.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en-simple_all_nopic_2026-09.zim","size_bytes":1073741824,"size_label":"about 1.0 GiB","description":"Broad, simpler-English encyclopedia coverage with full article text and no images."},
-    {"id":"astronomy-en-nopic","title":"Wikipedia Astronomy — full articles, no images","file":"wikipedia_en_astronomy_nopic_2026-11.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en_astronomy_nopic_2026-11.zim","size_bytes":584581120,"size_label":"about 557 MiB","description":"Focused astronomy reference with full text and no images; compact choice."},
-    {"id":"astronomy-en-maxi","title":"Wikipedia Astronomy — full articles with images","file":"wikipedia_en_astronomy_maxi_2026-08.zim","url":"https://download.kiwix.org/zim/wikipedia/wikipedia_en_astronomy_maxi_2026-08.zim","size_bytes":1717986918,"size_label":"about 1.6 GiB","description":"Focused astronomy reference with its useful illustrations and media. Optional if you want images."}
+    {"id":"official-library","title":"Official Kiwix Library","file":"library.kiwix.org","url":"https://library.kiwix.org/","size_label":"Browse by language, topic and size","description":"The maintained official catalogue. Check the exact archive size and language before downloading."},
+    {"id":"direct-downloads","title":"Direct ZIM archive directory","file":"download.kiwix.org/zim/","url":"https://download.kiwix.org/zim/","size_label":"Direct file listing","description":"Official directory listing for direct downloads. Use this if you prefer choosing the .zim file yourself."}
 ]
 
 def stop_kiwix():
-    global KIWIX_PROCESS
-    if KIWIX_PROCESS is not None and KIWIX_PROCESS.poll() is None:
-        try: KIWIX_PROCESS.terminate()
-        except OSError: pass
+    global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE
+    proc=KIWIX_PROCESS
+    KIWIX_PROCESS=None
+    KIWIX_PORT=None
+    KIWIX_ARCHIVE=None
+    if proc is None or proc.poll() is not None:
+        return
+    try:
+        proc.terminate()
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=2)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def parse_zim_header(header):
+    """Return minimal ZIM metadata only for a complete, correctly marked header."""
+    import struct
+    if not isinstance(header, (bytes, bytearray)) or len(header) < 80 or header[:4] != b"ZIM\\x04":
+        return None
+    major, minor = struct.unpack_from("<HH", header, 4)
+    articles, clusters = struct.unpack_from("<II", header, 24)
+    return {"valid_header":True,"version":str(major)+"."+str(minor),
+            "articles":articles,"clusters":clusters}
+
+
+def wait_for_kiwix(proc, port, timeout=8):
+    """Wait for the local HTTP endpoint, not merely successful process creation."""
+    import urllib.request
+    deadline=time.monotonic()+timeout
+    url=f"http://127.0.0.1:{port}/"
+    while time.monotonic()<deadline:
+        if proc.poll() is not None:
+            return False
+        try:
+            request=urllib.request.Request(url,headers={"User-Agent":"OUTPOST-local-check"})
+            with urllib.request.urlopen(request,timeout=0.5) as response:
+                if 200 <= response.status < 500:
+                    return True
+        except (OSError, TimeoutError):
+            time.sleep(0.15)
+    return False
+
+
 atexit.register(stop_kiwix)
 
 def connect():
@@ -543,13 +587,10 @@ class Handler(BaseHTTPRequestHandler):
                                 st=p.stat()
                                 meta={"name":name,"path":str(p),"size":st.st_size,"modified":st.st_mtime,"valid_header":False}
                                 try:
-                                    with p.open("rb") as stream: header=stream.read(32)
-                                    if len(header)>=32 and header[:3]==b"ZIM":
-                                        import struct
-                                        major,minor=struct.unpack_from("<HH",header,4)
-                                        articles,clusters=struct.unpack_from("<II",header,24)
-                                        meta.update({"valid_header":True,"version":str(major)+"."+str(minor),"articles":articles,"clusters":clusters})
-                                except (OSError,ValueError,struct.error): pass
+                                    with p.open("rb") as stream: header=stream.read(80)
+                                    parsed=parse_zim_header(header)
+                                    if parsed: meta.update(parsed)
+                                except (OSError,ValueError): pass
                                 archives.append(meta)
                             except OSError: pass
             self.send_json(archives); return
@@ -750,9 +791,14 @@ class Handler(BaseHTTPRequestHandler):
                 proc=subprocess.Popen([command,"--address=127.0.0.1",f"--port={port}",str(archive)],
                     stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
                     close_fds=True,start_new_session=True)
-                time.sleep(0.25)
-                if proc.poll() is not None:
-                    raise RuntimeError("kiwix-serve exited while starting. Check the installed Kiwix tools and ZIM file.")
+                if not wait_for_kiwix(proc,port,timeout=8):
+                    try:
+                        proc.terminate()
+                        proc.wait(timeout=2)
+                    except (OSError,subprocess.SubprocessError):
+                        try: proc.kill()
+                        except OSError: pass
+                    raise RuntimeError("kiwix-serve did not become ready on its local address. Check the installed Kiwix tools and the ZIM archive.")
                 KIWIX_PROCESS,KIWIX_PORT,KIWIX_ARCHIVE=proc,port,str(archive)
                 self.send_json({"ok":True,"url":f"http://127.0.0.1:{port}/","port":port,"archive":archive.name,
                     "note":"Local-only Kiwix server bound to 127.0.0.1; it stops when OUTPOST exits."},201); return
