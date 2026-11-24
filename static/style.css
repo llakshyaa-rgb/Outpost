@@ -101,3 +101,5 @@
 #security-copy-output:disabled{opacity:.5;cursor:not-allowed}
 #security-tool-output.tool-output{box-sizing:border-box;max-width:100%;min-width:0;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden;overflow-y:auto}
 @media(max-width:700px){#security .surface{padding:clamp(12px,3.5vw,18px)}#security-tool-output.tool-output{font-size:11px;padding:10px}.security-output-head{flex-wrap:wrap}}
+
+.danger-zone{margin-top:22px;padding:16px;border:1px solid #8b4545;border-radius:12px;background:rgba(115,35,35,.10)}.danger-zone h3{margin:6px 0}.danger-button{background:#7d2929;color:#fff;border:1px solid #b45b5b;border-radius:8px;padding:10px 14px;font-weight:700}.danger-button:disabled{opacity:.55}
