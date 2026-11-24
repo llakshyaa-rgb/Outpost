@@ -45,6 +45,23 @@ class WikiCompactTests(unittest.TestCase):
             self.assertIn("orbiting the Sun", item["body"])
             self.assertEqual(item["images"], ["Earth diagram.png"])
 
+    def test_failed_import_preserves_previous_library(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            good = root / "good.xml"
+            bad = root / "broken.xml"
+            db = root / "wiki.db"
+            good.write_text("""<?xml version="1.0"?>
+<mediawiki><page><title>Earth</title><ns>0</ns><revision><text>The Earth is a rocky planet orbiting the Sun and has a natural satellite called the Moon.</text></revision></page></mediawiki>""", encoding="utf-8")
+            import_dump(str(good), str(db))
+            before = search(str(db), "rocky planet")
+            self.assertEqual(before[0]["title"], "Earth")
+            bad.write_text("<mediawiki><page>", encoding="utf-8")
+            with self.assertRaises(Exception):
+                import_dump(str(bad), str(db))
+            after = search(str(db), "rocky planet")
+            self.assertEqual(after[0]["title"], "Earth")
+
 
 if __name__ == "__main__":
     unittest.main()
