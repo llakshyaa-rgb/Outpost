@@ -219,7 +219,7 @@ def managed_path(raw, allow_root=False):
         probe=probe.parent
     p=candidate.resolve()
     roots=managed_roots()
-    if not any((p==r if allow_root else p!=r) or r in p.parents for r in roots):
+    if not any((p==r or r in p.parents) if allow_root else (p!=r and r in p.parents) for r in roots):
         raise ValueError("Path is outside OUTPOST's configured folders")
     return p
 
