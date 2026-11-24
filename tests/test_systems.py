@@ -8,7 +8,12 @@ class OfflineSystemsTests(unittest.TestCase):
     def test_chunking_is_bounded_and_overlaps(self):
         chunks=chunk_text(("alpha " * 500) + "\n\n" + ("beta " * 500),800,100)
         self.assertGreater(len(chunks),1)
-        self.assertTrue(all(len(x)<=900 for x in chunks))
+        self.assertTrue(all(len(x)<=800 for x in chunks))
+        long_chunks=chunk_text("x"*1900,800,100)
+        self.assertTrue(all(len(x)<=800 for x in long_chunks))
+        self.assertEqual(long_chunks[0][-100:],long_chunks[1][:100])
+        paragraph_chunks=chunk_text(("a"*800)+"\n\n"+("b"*800),800,100)
+        self.assertTrue(all(len(x)<=800 for x in paragraph_chunks))
 
     def test_uplink_refresh_removes_stale_passages_and_updates_source_metadata(self):
         db=sqlite3.connect(":memory:")
