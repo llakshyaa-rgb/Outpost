@@ -53,7 +53,7 @@ def stop_kiwix():
 def parse_zim_header(header):
     """Return minimal ZIM metadata only for a complete, correctly marked header."""
     import struct
-    if not isinstance(header, (bytes, bytearray)) or len(header) < 80 or header[:4] != b"ZIM\\x04":
+    if not isinstance(header, (bytes, bytearray)) or len(header) < 80 or header[:4] != b"ZIM\x04":
         return None
     major, minor = struct.unpack_from("<HH", header, 4)
     articles, clusters = struct.unpack_from("<II", header, 24)
