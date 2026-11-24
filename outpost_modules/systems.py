@@ -22,7 +22,9 @@ def chunk_text(text: str, max_chars: int=1600, overlap: int=200) -> list[str]:
             out.append(block[:max_chars])
             block=block[max_chars-overlap:]
         if current and len(current)+len(block)+1>max_chars:
-            out.append(current); current=current[-overlap:]+"\n"+block if overlap else block
+            # Preserve paragraph boundaries here; overlap is already retained
+            # when a single oversized paragraph is split above.
+            out.append(current); current=block
         else: current=(current+"\n"+block).strip()
     if current: out.append(current)
     return out
