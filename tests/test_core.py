@@ -35,6 +35,11 @@ class OutpostCoreTests(unittest.TestCase):
             item.stop()
         self.temp.cleanup()
 
+    def test_managed_path_allows_root_only_when_explicit(self):
+        self.assertEqual(app.managed_path(str(self.root), allow_root=True), self.root)
+        with self.assertRaises(ValueError):
+            app.managed_path(str(self.root))
+
     def test_managed_path_allows_configured_file(self):
         target = self.root / "hello.txt"
         target.write_text("offline", encoding="utf-8")
