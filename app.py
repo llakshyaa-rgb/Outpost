@@ -578,6 +578,32 @@ class Handler(BaseHTTPRequestHandler):
         try: data=payload(self)
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
+        if self.path == "/api/reset/full":
+            global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE, WIKI_IMPORT_STATE
+            if WIKI_IMPORT_THREAD is not None and WIKI_IMPORT_THREAD.is_alive():
+                self.send_json({"error":"A Wikipedia import is running. Wait for it to finish before resetting OUTPOST."},409); return
+            try:
+                with LOCK:
+                    stop_kiwix()
+                    KIWIX_PROCESS=None; KIWIX_PORT=None; KIWIX_ARCHIVE=None
+                    DATA.mkdir(parents=True,exist_ok=True)
+                    for child in list(DATA.iterdir()):
+                        if child.is_symlink() or child.is_file(): child.unlink()
+                        elif child.is_dir(): shutil.rmtree(child)
+                    imported=ROOT/"knowledge"/"imported"
+                    if imported.is_symlink(): imported.unlink()
+                    elif imported.is_dir(): shutil.rmtree(imported)
+                    kiwix=STATIC/"kiwix"
+                    if kiwix.is_symlink(): kiwix.unlink()
+                    elif kiwix.is_dir(): shutil.rmtree(kiwix)
+                    DATA.mkdir(parents=True,exist_ok=True)
+                    save_config({"index_roots":[]})
+                    init_db()
+                    WIKI_IMPORT_STATE={"running":False,"pages_seen":0,"articles_saved":0,"error":""}
+                self.send_json({"ok":True,"message":"OUTPOST local data reset. External folders and original files were not changed."})
+            except Exception as e:
+                self.send_json({"error":"Full reset failed: "+str(e)},500)
+            return
         if self.path == "/api/wiki/images/import":
             import zipfile, stat
             try:
