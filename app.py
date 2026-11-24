@@ -5,6 +5,7 @@ import atexit, json, mimetypes, os, shutil, socket, sqlite3, subprocess, threadi
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, unquote
+from html.parser import HTMLParser
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
@@ -79,8 +80,60 @@ def load_config():
 def save_config(cfg):
     CONFIG.write_text(json.dumps(cfg, indent=2))
 
+class _VisibleHTMLText(HTMLParser):
+    """Extract readable HTML text while ignoring non-visible document sections."""
+    BLOCKED = {"head", "script", "style", "noscript", "template", "svg"}
+    BLOCKS = {"address", "article", "aside", "blockquote", "br", "dd", "div",
+              "dl", "dt", "figcaption", "figure", "footer", "form", "h1",
+              "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
+              "nav", "ol", "p", "pre", "section", "table", "tr", "ul"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if self.skip_depth:
+            if tag not in {"area", "base", "br", "col", "embed", "hr", "img",
+                           "input", "link", "meta", "param", "source", "track", "wbr"}:
+                self.skip_depth += 1
+            return
+        if tag in self.BLOCKED:
+            self.skip_depth = 1
+        elif tag in self.BLOCKS:
+            self.parts.append("\\n")
+
+    def handle_startendtag(self, tag, attrs):
+        if not self.skip_depth and tag in self.BLOCKS:
+            self.parts.append("\\n")
+
+    def handle_endtag(self, tag):
+        if self.skip_depth:
+            self.skip_depth -= 1
+        elif tag in self.BLOCKS:
+            self.parts.append("\\n")
+
+    def handle_data(self, data):
+        if not self.skip_depth and data.strip():
+            self.parts.append(data)
+
+    def text(self):
+        import re
+        lines = [" ".join(part.split()) for part in "".join(self.parts).splitlines()]
+        return re.sub(r"\\n{3,}", "\\n\\n", "\\n".join(line for line in lines if line)).strip()
+
+
 def extract_document(p):
     ext=p.suffix.lower()
+    if ext == ".html":
+        parser = _VisibleHTMLText()
+        try:
+            parser.feed(p.read_text(encoding="utf-8", errors="replace"))
+            parser.close()
+            return parser.text()
+        except Exception:
+            return ""
     if ext in TEXT_EXT:
         return p.read_text(encoding="utf-8",errors="replace")
     if ext==".pdf":
