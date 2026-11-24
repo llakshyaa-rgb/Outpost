@@ -13,7 +13,9 @@ def match_expressions(query: str) -> list[str]:
     words = _WORDS.findall(query[:500])
     if not words:
         return []
-    useful = [w for w in words if w.casefold() not in _STOP] or words
+    # Uppercase FTS-looking operators are still literal user terms. Keep
+    # them quoted rather than silently dropping them as natural-language stops.
+    useful = [w for w in words if w.casefold() not in _STOP or w in {"AND","OR","NOT","NEAR"}] or words
     # Quoting every token prevents user-supplied FTS operators from changing
     # the query grammar. Try AND first, then OR for natural-language recall.
     quoted = ['"' + w.replace('"', '""') + '"' for w in useful[:24]]
