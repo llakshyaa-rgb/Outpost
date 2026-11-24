@@ -6,7 +6,7 @@ section structure, and records only likely instructional/technical image
 references. It does not fetch media or contact the network.
 """
 from __future__ import annotations
-import bz2, gzip, html, re, sqlite3, time, zlib
+import bz2, gzip, html, os, re, sqlite3, tempfile, time, zlib
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -102,7 +102,7 @@ def _enforce_database_limit(db_path: str):
     return size
 
 
-def import_dump(source: str, db_path: str, progress=None):
+def _import_dump_into_db(source: str, db_path: str, progress=None):
     path=Path(source).expanduser().resolve()
     if not path.is_file(): raise ValueError("Choose an existing Wikipedia XML dump (.xml, .bz2 or .gz)")
     if path.stat().st_size > MAX_SOURCE_BYTES: raise ValueError("Source dump exceeds the 80 GB safety limit")
@@ -188,3 +188,27 @@ def article(db_path: str, article_id: int):
         if not row: return None
         return {"id":row["id"],"title":row["title"],"body":zlib.decompress(row["body"]).decode("utf-8","replace"),"chars":row["chars"],"images":[x for x in row["images"].split("\n") if x]}
     finally: conn.close()
+
+
+def import_dump(source: str, db_path: str, progress=None):
+    """Build a fresh compact library beside the destination and swap it in only on success.
+
+    A malformed or oversized dump must never erase a previously imported library.
+    """
+    destination=Path(db_path).expanduser().resolve()
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    fd,temp_name=tempfile.mkstemp(prefix=destination.name+".",suffix=".building",dir=str(destination.parent))
+    os.close(fd)
+    temp=Path(temp_name)
+    try:
+        temp.unlink()
+        result=_import_dump_into_db(source,str(temp),progress)
+        # The importer checkpoints and closes the DB before returning.
+        os.replace(temp,destination)
+        result["database"]=str(destination)
+        return result
+    finally:
+        for suffix in ("","-wal","-shm"):
+            try: Path(str(temp)+suffix).unlink()
+            except FileNotFoundError: pass
+            except OSError: pass
