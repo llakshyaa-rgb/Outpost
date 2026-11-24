@@ -572,6 +572,7 @@ class Handler(BaseHTTPRequestHandler):
         data=p.read_bytes(); typ=mimetypes.guess_type(str(p))[0] or "application/octet-stream"
         self.send_response(200); self.send_header("Content-Type",typ); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
     def do_POST(self):
+        global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE, WIKI_IMPORT_THREAD, WIKI_IMPORT_STATE
         host=self.headers.get("Host","").split(":")[0].strip("[]").lower()
         if host not in {"127.0.0.1","localhost"}:
             self.send_json({"error":"Invalid local Host header"},403); return
@@ -579,7 +580,6 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e: self.send_json({"error":str(e)},400); return
         now=time.time()
         if self.path == "/api/reset/full":
-            global KIWIX_PROCESS, KIWIX_PORT, KIWIX_ARCHIVE, WIKI_IMPORT_STATE
             if WIKI_IMPORT_THREAD is not None and WIKI_IMPORT_THREAD.is_alive():
                 self.send_json({"error":"A Wikipedia import is running. Wait for it to finish before resetting OUTPOST."},409); return
             try:
@@ -636,7 +636,6 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError,ValueError,zipfile.BadZipFile) as e:
                 self.send_json({"error":str(e)},400); return
         if self.path == "/api/wiki/import":
-            global WIKI_IMPORT_THREAD, WIKI_IMPORT_STATE
             try:
                 source=managed_path(str(data.get("path","")))
                 if not source.is_file(): raise ValueError("Choose a dump file inside a configured folder")
