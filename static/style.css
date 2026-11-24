@@ -64,3 +64,27 @@
 .upload-trigger{font:inherit;text-align:left}
 .upload-trigger:active{transform:translateY(1px)}
 @media(max-width:520px){.outpost-file-dialog{padding:16px}.outpost-file-list{max-height:38dvh}.outpost-file-actions{flex-wrap:wrap}.outpost-file-actions button{flex:1}}
+
+
+/* Security Desk output: keep long hashes and JSON inside the mobile card. */
+#security,.view#security,.view#security>.surface,#security .surface{min-width:0;max-width:100%}
+#security-tool-output.tool-output{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  max-height:min(42dvh,360px);
+  margin:12px 0 0;
+  padding:13px;
+  overflow:auto;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  contain:inline-size;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#101713;
+  color:#d0d9ce;
+  font:10px/1.65 ui-monospace,SFMono-Regular,monospace;
+}
+#security .surface>*{min-width:0}
