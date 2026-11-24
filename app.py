@@ -102,7 +102,7 @@ class _VisibleHTMLText(HTMLParser):
         if tag in self.BLOCKED:
             self.skip_depth = 1
         elif tag in self.BLOCKS:
-            self.parts.append("\\n")
+            self.parts.append("\n")
 
     def handle_startendtag(self, tag, attrs):
         if not self.skip_depth and tag in self.BLOCKS:
