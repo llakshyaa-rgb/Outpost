@@ -17,6 +17,17 @@ class RetrievalTests(unittest.TestCase):
         self.assertGreaterEqual(len(chunks), 2)
         self.assertTrue(all(len(chunk) <= 681 for chunk in chunks))
 
+    def test_global_knowledge_synonyms(self):
+        expressions = match_expressions("porn")
+        self.assertIn('"pornography"', expressions[0])
+        self.assertIn('"sexual media"', expressions[0])
+        typo = match_expressions("nudely")
+        self.assertIn('"nudity"', typo[0])
+
+    def test_prefix_search_wildcard(self):
+        expressions = match_expressions("reproduce*")
+        self.assertIn('"reproduce"*', expressions[0])
+
 
 class CyberDeskTests(unittest.TestCase):
     def test_strings_and_hex(self):
