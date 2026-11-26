@@ -1,5 +1,8 @@
 # Practical World Reference — Health, Geography, History and Everyday Skills
 
+
+**Search terms:** world reference, countries, capitals, currencies, languages, time zones, geography, units, global facts, reference data.
+
 ## Health literacy
 Use reliable clinical and public-health sources. Learn basic anatomy, infection prevention, nutrition, sleep, mental wellbeing and how to recognise emergencies. First aid is time-sensitive: call local emergency services, follow dispatcher instructions and use training appropriate to the situation. This guide does not diagnose or replace medical care. Drug names, doses and availability vary by country and patient.
 
