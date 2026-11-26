@@ -273,3 +273,13 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#02030a}
 @media(max-width:480px){
  .settings-functional{width:42%;max-height:28%}
 }
+
+/* Keep every existing functional module inside the same red/black command environment. */
+.module-return{position:fixed;z-index:300;top:calc(env(safe-area-inset-top) + 10px);left:12px;padding:9px 14px;border:1px solid #b3293e;background:#10070bea;color:#fff;font:600 12px/1 Arial,sans-serif;letter-spacing:.12em;box-shadow:0 0 16px #e52a4140;cursor:pointer}
+.module-return[hidden]{display:none!important}
+.main>.view:not(#overview):not(#settings){box-sizing:border-box;padding:58px clamp(14px,3vw,38px) 24px!important;background:radial-gradient(ellipse at 75% 12%,#6e1422 0,transparent 35%),linear-gradient(135deg,#08090e,#10080e 65%,#08090e);color:#f4e9eb}
+.main>.view:not(#overview):not(#settings) .surface,.main>.view:not(#overview):not(#settings) .stat-card,.main>.view:not(#overview):not(#settings) .knowledge-domain,.main>.view:not(#overview):not(#settings) .law-source{background:linear-gradient(145deg,#170e13,#09090e)!important;border:1px solid #5f1c2b!important;box-shadow:0 8px 24px #0008,inset 0 0 20px #9f1c2c18!important;color:#f4e9eb}
+.main>.view:not(#overview):not(#settings) h1,.main>.view:not(#overview):not(#settings) h2,.main>.view:not(#overview):not(#settings) h3,.main>.view:not(#overview):not(#settings) b{color:#fff}
+.main>.view:not(#overview):not(#settings) .eyebrow{color:#ed5264}
+.main>.view:not(#overview):not(#settings) input,.main>.view:not(#overview):not(#settings) textarea,.main>.view:not(#overview):not(#settings) select{background:#09080d!important;border:1px solid #6e2935!important;color:#fff!important}
+.main>.view:not(#overview):not(#settings) button,.main>.view:not(#overview):not(#settings) .primary{border-color:#9c2638}
