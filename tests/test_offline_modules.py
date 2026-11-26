@@ -25,8 +25,8 @@ class RetrievalTests(unittest.TestCase):
         self.assertIn('"nudity"', typo[0])
 
     def test_prefix_search_for_incomplete_word(self):
-        expressions = match_expressions("biol")
-        self.assertIn('"biol"*', expressions[0])
+        expressions = match_expressions("bio")
+        self.assertIn('"bio"*', expressions[0])
 
     def test_typo_suggestions_use_indexed_vocabulary(self):
         self.assertEqual(typo_candidates("biolgy", ["biology", "chemistry"]), ["biology"])
