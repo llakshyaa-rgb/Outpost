@@ -137,3 +137,23 @@ Requirements: Node.js 18.18+ and npm in Termux, and enough temporary storage for
 - Kiwix's pinned build installer now includes the required Babel configuration and applies limits to selected source extraction; source-extraction regression tests were added.
 - The CSV inspector now reports malformed CSV input cleanly. Uplink feedback stays attached to the query that produced the displayed results.
 - These changes have regression tests in the repository; target-device runtime testing is still required.
+
+
+## Worldwide Offline Knowledge Plan
+
+The Offline Library's subject map is intentionally global and multidisciplinary. It covers science and mathematics; computing and AI; engineering; health; Earth and geography; world history and culture; economics and business; agriculture and food; survival and practical skills; languages and literature; law and governance; psychology and society; arts and design; transport and exploration; and general reference/research.
+
+### Law and governance: global jurisdiction model
+
+Legal content is not India-centric. Organise it by:
+1. **International** — UN treaties and instruments, international organisations and international courts.
+2. **Regional** — regional treaties, courts and legal frameworks (for example, European, African, Inter-American and Asia-Pacific systems).
+3. **National** — constitutions, statutes, regulations, court decisions and official gazettes for countries worldwide.
+4. **Subnational** — state, province, territory and local law where reliable public sources exist.
+5. **Comparative and explanatory** — legal research guides and secondary analysis, clearly distinguished from primary law.
+
+Useful research gateways include WorldLII, the UN Treaty Collection, FAOLEX, ILO NORMLEX/NATLEX, WIPO Lex and the Library of Congress Guide to Law Online. These are source gateways, not a guarantee that every jurisdiction's complete or current law is available offline.
+
+**Provenance rule:** every imported legal source should retain its jurisdiction, issuing authority, source URL, document type, publication/effective date when available, and date last checked. Mark superseded or uncertain material. Do not label a partial collection as comprehensive or present it as legal advice.
+
+The map in the Offline Library is a coverage plan and source directory. It does not mean those datasets are already downloaded. ZIM archives and curated packs remain user-selected imports; OUTPOST does not silently download large datasets.
