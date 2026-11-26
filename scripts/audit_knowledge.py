@@ -12,7 +12,7 @@ def main():
     if not ATLAS.is_file():
         errors.append("Missing coverage atlas: " + str(ATLAS))
     articles = sorted(p for p in KNOWLEDGE.rglob("*.md")
-                      if p.is_file() and p != ATLAS and p.name.upper() != "README.MD" and "bughunter" not in p.parts)
+                      if p.is_file() and p != ATLAS and p.name.upper() not in {"README.MD", "ARTICLE_TEMPLATE.MD"} and "bughunter" not in p.parts)
     if not articles:
         errors.append("No Markdown knowledge articles found")
     for path in articles:
