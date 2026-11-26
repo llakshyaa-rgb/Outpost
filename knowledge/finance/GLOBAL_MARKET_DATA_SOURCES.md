@@ -1,5 +1,8 @@
 # Global Financial Data and Market Research Sources
 
+
+**Search terms:** market data, stock prices, financial data, exchange rates, economic indicators, global markets, official data sources, finance APIs.
+
 This is a source directory for building an offline reference collection. These links are not bundled datasets and OUTPOST does not fetch them automatically. Check terms, redistribution rights, API limits, geographic coverage and update frequency before importing anything.
 
 ## Market structure, investor education and regulation
