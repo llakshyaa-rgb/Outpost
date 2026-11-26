@@ -93,3 +93,58 @@ button:focus-visible{outline:2px solid #ff6877;outline-offset:3px}
 @media(max-height:540px){#settings .settings-grid{padding-top:13vh;grid-template-rows:repeat(2,minmax(120px,1fr));gap:8px}.settings-card{padding:10px}.control-row{margin:5px 0}.settings-functional{display:none}}
 @media(max-width:700px){.view:not(#overview):not(#settings){padding:58px 14px 20px}.two-col,.archive-layout{grid-template-columns:1fr}#settings .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;padding:13vh 3vw 20px}.settings-card{min-height:145px}}
 @media(min-width:2500px){body{font-size:20px}.surface{padding:38px}.item{padding:24px}}
+
+
+/* === HIGH-DPI DISPLAY + OVERLAP CORRECTIONS === */
+html{min-width:320px;min-height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{width:100vw;height:100dvh;min-height:100dvh;overscroll-behavior:none}
+#landing,#overview,#settings{isolation:isolate}
+#landing:before,#overview:before{background-size:cover!important;background-position:center center!important;image-rendering:auto;transform:translateZ(0)}
+#landing:before{background-image:url('/static/assets/reference-home.jpg')}
+#overview:before{background-image:url('/static/assets/reference-command.jpg')}
+#settings:before{display:none!important}
+#settings{overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:thin;scrollbar-color:#8c2638 #100a10}
+#settings .top-bar{position:sticky!important;top:0!important;height:clamp(52px,12vh,100px)!important;min-height:52px;background:linear-gradient(180deg,rgba(5,4,8,.98),rgba(5,4,8,.75),transparent);z-index:20!important;display:block!important;pointer-events:none}
+#settings .back-btn{left:3vw!important;top:18%!important;width:auto!important;min-width:84px;height:62%!important;padding:0 14px!important;opacity:1!important;color:#fff!important;background:rgba(12,7,13,.92)!important;border:1px solid #e62e3d!important;pointer-events:auto!important;font:600 12px 'Orbitron',sans-serif!important}
+#settings .header-title{display:block!important;position:absolute!important;left:50%!important;top:18%!important;transform:translateX(-50%);width:auto!important;opacity:1!important;color:#fff!important;font:700 clamp(14px,1.4vw,24px) 'Orbitron',sans-serif!important;letter-spacing:2px}
+#settings .header-code{display:none!important}
+#settings .settings-grid{position:relative!important;inset:auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-rows:none!important;grid-auto-rows:minmax(135px,auto)!important;gap:clamp(10px,1.25vw,24px)!important;padding:1vh clamp(14px,4vw,72px) 2vh!important;margin:0 auto!important;max-width:1900px!important}
+#settings .settings-card{min-width:0!important;min-height:135px!important;overflow:hidden;padding:clamp(12px,1.2vw,24px)!important;background:linear-gradient(145deg,rgba(23,10,18,.97),rgba(7,6,10,.96))!important;border:1px solid rgba(230,46,61,.62)!important;box-shadow:0 8px 30px #0009,inset 0 0 26px #e62e3d12!important}
+#settings .settings-functional{position:relative!important;z-index:2!important;margin:0 auto 24px!important;padding:20px clamp(14px,4vw,72px)!important;max-width:1900px!important}
+#settings .settings-functional textarea{min-height:70px!important}
+#settings .control-row{min-width:0;flex-wrap:wrap;line-height:1.2}
+#settings .control-row input[type=range]{min-width:80px;max-width:52%}
+#settings .settings-note{line-height:1.3}
+#module-return{position:fixed!important;top:max(10px,env(safe-area-inset-top))!important;left:max(12px,env(safe-area-inset-left))!important;z-index:100!important;min-height:38px;padding:8px 14px!important;background:rgba(9,5,11,.97)!important;border:1px solid #e62e3d!important;box-shadow:0 4px 18px #000b!important;white-space:nowrap}
+.view:not(#overview):not(#settings){padding:clamp(68px,10vh,100px) clamp(16px,4vw,72px) 30px!important;overflow-x:hidden!important;overflow-y:auto!important;scrollbar-width:thin;scrollbar-color:#8c2638 #100a10}
+.view:not(#overview):not(#settings) .section-row{padding-top:0!important;margin-top:0!important}
+.view:not(#overview):not(#settings) .surface{min-width:0;overflow-wrap:anywhere}
+.view:not(#overview):not(#settings) .two-col,.view:not(#overview):not(#settings) .archive-layout{align-items:start}
+#overview .top-bar{height:clamp(58px,15vh,110px)!important}
+#overview .modules-grid{inset:27% 4% 4% 4%!important}
+#overview .module-card{touch-action:manipulation}
+#overview .module-card:focus-visible{outline:3px solid #ff6877!important;outline-offset:-4px!important}
+#orientation-hint{z-index:100000!important}
+@media (min-resolution:2dppx){
+ #landing:before,#overview:before{transform:translateZ(0);backface-visibility:hidden}
+}
+@media (orientation:landscape) and (max-height:520px){
+ #settings .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:minmax(118px,auto)!important;gap:8px!important;padding-top:0!important}
+ #settings .settings-card{min-height:118px!important;padding:9px!important}
+ #settings .card-header{margin-bottom:6px!important;font-size:12px!important}
+ #settings .control-row{margin:5px 0!important;font-size:11px!important}
+ #settings .settings-functional{padding-top:10px!important}
+ .view:not(#overview):not(#settings){padding-top:60px!important}
+}
+@media (orientation:portrait){
+ #settings .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-rows:minmax(135px,auto)!important}
+ #settings .settings-functional{padding-left:14px!important;padding-right:14px!important}
+ .view:not(#overview):not(#settings){padding-top:70px!important}
+}
+@media (min-width:2000px){
+ #settings .settings-grid{grid-auto-rows:minmax(260px,auto)!important;gap:28px!important}
+ #settings .settings-card{padding:34px!important}
+ #settings .card-header{font-size:25px!important}
+ #settings .control-row{font-size:19px!important;margin:16px 0!important}
+ #module-return{font-size:16px!important;padding:14px 22px!important}
+}
