@@ -148,3 +148,16 @@ body{width:100vw;height:100dvh;min-height:100dvh;overscroll-behavior:none}
  #settings .control-row{font-size:19px!important;margin:16px 0!important}
  #module-return{font-size:16px!important;padding:14px 22px!important}
 }
+
+/* Reference artwork backgrounds: keep the original composition crisp. */
+#landing:before,#overview:before,#settings:before{
+ display:block!important;opacity:1!important;filter:none!important;
+ background-repeat:no-repeat!important;background-position:center center!important;
+ background-size:100% 100%!important;image-rendering:auto!important;
+}
+#landing:before{background-image:url('/static/assets/reference-home.jpg')!important}
+#overview:before{background-image:url('/static/assets/reference-command.jpg')!important}
+#settings:before{background-image:url('/static/assets/reference-settings.jpg')!important}
+#settings{background:#070508!important}
+#settings .settings-grid{position:relative!important;z-index:3!important}
+#settings .settings-card{backdrop-filter:none!important}
