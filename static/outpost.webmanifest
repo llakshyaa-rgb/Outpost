@@ -1,0 +1,11 @@
+{
+  "name": "OUTPOST",
+  "short_name": "OUTPOST",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070508",
+  "theme_color": "#070508",
+  "icons": []
+}
