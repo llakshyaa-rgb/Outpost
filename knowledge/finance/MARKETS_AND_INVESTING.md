@@ -1,5 +1,8 @@
 # Global Markets and Investing — Offline Field Guide
 
+
+**Search terms:** stocks, shares, stock market, investing, investment, bonds, ETFs, funds, indices, valuation, P/E ratio, portfolio, trading, risk, global markets.
+
 **Scope:** worldwide financial-market education. This is a learning reference, not investment advice, a recommendation, or a source of live prices. Rules, taxes, products and investor protections vary by jurisdiction.
 
 ## 1. What financial markets do
