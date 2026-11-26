@@ -111,6 +111,7 @@ def init_db():
               INSERT INTO documents_fts(rowid,name,path,content) VALUES(new.id,new.name,new.path,new.content);
             END;
             """)
+            c.execute("CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts_vocab USING fts5vocab(documents_fts, 'row')")
         except sqlite3.OperationalError:
             pass
         c.execute("INSERT OR IGNORE INTO collections(name,description,created) VALUES('Inbox','Saved items',?)",(time.time(),))
