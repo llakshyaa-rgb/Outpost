@@ -73,6 +73,21 @@ def extract_source(archive: Path, source: Path):
                 shutil.copyfileobj(src, dst)
 
 
+def patch_termux_minifier(source: Path):
+    """Limit Terser to one worker for constrained/mobile Node environments."""
+    config = source / "rollup.config.js"
+    if not config.is_file():
+        raise RuntimeError("Pinned Kiwix source is missing rollup.config.js")
+    content = config.read_text(encoding="utf-8")
+    original = "config.plugins.push(terser());"
+    replacement = "config.plugins.push(terser({ maxWorkers: 1 }));"
+    if replacement in content:
+        return
+    if content.count(original) != 1:
+        raise RuntimeError("Could not safely apply the single-worker Terser compatibility patch")
+    config.write_text(content.replace(original, replacement, 1), encoding="utf-8")
+
+
 def install_bundle(built: Path, source: Path):
     required = (
         built / "www" / "index.html",
@@ -192,9 +207,10 @@ def main():
 
         source = tmp / "source"
         extract_source(archive, source)
+        patch_termux_minifier(source)
         print("Installing temporary npm build dependencies…")
         subprocess.run(["npm", "ci", "--no-audit", "--no-fund"], cwd=source, check=True)
-        print("Building production Kiwix JS reader…")
+        print("Building production Kiwix JS reader (single Terser worker for Termux)…")
         subprocess.run(["npm", "run", "build-min"], cwd=source, check=True)
         install_bundle(source / "dist", source)
 
