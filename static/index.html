@@ -6,25 +6,50 @@
 <title>OUTPOST — Local Systems</title><link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<section id="landing" class="reference-home" aria-label="OUTPOST home">
-<button class="image-hotspot home-start" id="landing-start" aria-label="Start"></button>
-<button class="image-hotspot home-settings" id="landing-settings" aria-label="Settings"></button>
-<button class="image-hotspot home-leave" id="landing-leave" aria-label="Leave"></button>
+<section id="landing" class="screen active" aria-label="OUTPOST title menu">
+  <div class="cosmos-bg"><div class="stars"></div></div>
+  <div class="menu-stack">
+    <button class="menu-btn" id="landing-start">START</button>
+    <button class="menu-btn" id="landing-settings">SETTINGS</button>
+    <button class="menu-btn" id="landing-leave">LEAVE</button>
+  </div>
+  <div class="hero-emblem">
+    <div class="hero-title">OUTPOST</div>
+    <div class="hero-sub">PERSONAL COMMAND ENVIRONMENT</div>
+  </div>
 </section>
 <div class="app-shell app-hidden">
 <header class="command-bar"><a class="brand" href="#" data-go="overview"><span class="brand-mark">O</span><span><b>OUTPOST</b><small>PERSONAL SYSTEMS</small></span></a><nav class="command-nav"><button class="nav active" data-view="overview"><span class="nav-icon">⌂</span><span>Overview</span></button><button class="nav " data-view="archive"><span class="nav-icon">▤</span><span>File archive</span></button><button class="nav " data-view="offline"><span class="nav-icon">◉</span><span>Offline library</span></button><button class="nav " data-view="knowledge"><span class="nav-icon">⌕</span><span>Knowledge search</span></button><button class="nav " data-view="notes"><span class="nav-icon">✎</span><span>Notes</span></button><button class="nav " data-view="collections"><span class="nav-icon">▣</span><span>Collections</span></button><button class="nav " data-view="security"><span class="nav-icon">⌘</span><span>Security desk</span></button><button class="nav " data-view="network"><span class="nav-icon">⌁</span><span>IP toolbox</span></button><button class="nav " data-view="settings"><span class="nav-icon">⚙</span><span>Settings</span></button></nav><div class="sidebar-bottom"><span class="live-dot"></span>LOCAL MODE</div></header>
 <main class="main">
 <header class="topbar"><div class="mobile-brand"><span class="brand-mark">O</span><b>OUTPOST</b></div><div class="page-heading"><div class="eyebrow">PERSONAL OPERATING ENVIRONMENT</div><h1 id="heading">Overview</h1><p id="subheading">Your systems, knowledge and files in one private workspace.</p></div><div class="top-status"><span class="live-dot"></span> DEVICE-LOCAL <span class="status-divider">/</span> <span id="clock-label">READY</span></div></header>
 
-<section id="overview" class="view reference-dashboard" aria-label="OUTPOST command dashboard">
-<button class="image-hotspot dashboard-back" id="dashboard-back" aria-label="Back"></button>
-<input id="reference-search" class="image-hotspot dashboard-search" aria-label="Search OUTPOST" placeholder=""/>
-<button class="image-hotspot module-archive" data-module-go="archive" aria-label="Archive"></button>
-<button class="image-hotspot module-laboratory" data-module-go="network" aria-label="Laboratory"></button>
-<button class="image-hotspot module-atlas" data-module-go="offline" aria-label="Atlas"></button>
-<button class="image-hotspot module-sentinel" data-module-go="security" aria-label="Sentinel"></button>
-<button class="image-hotspot module-network" data-module-go="knowledge" aria-label="Network"></button>
-<button class="image-hotspot module-forge" data-module-go="notes" aria-label="Forge"></button>
+<section id="overview" class="view screen command-screen" aria-label="OUTPOST command dashboard">
+  <div class="cosmos-bg"><div class="stars"></div></div>
+  <header class="top-bar">
+    <button class="back-btn" id="dashboard-back">‹ BACK</button>
+    <div class="header-title">OUTPOST <span>//</span> COMMAND</div>
+    <label class="search-box"><input id="reference-search" placeholder="Search modules..." autocomplete="off"><span>⌕</span></label>
+  </header>
+  <main class="command-main">
+    <section class="weather-card">
+      <div class="weather-header"><div><div class="weather-city">SYSTEM ENVIRONMENT</div><div class="weather-temp">LOCAL</div><div class="weather-status">Device-local workspace · Offline-first</div></div><span class="weather-mark">◈</span></div>
+      <div class="timeline-row">
+        <div class="time-slot now"><div class="time-icon">⌂</div><div class="time-label">DEVICE</div></div>
+        <div class="time-slot"><div class="time-icon">▤</div><div class="time-label">FILES</div></div>
+        <div class="time-slot"><div class="time-icon">◉</div><div class="time-label">LIBRARY</div></div>
+        <div class="time-slot"><div class="time-icon">⌕</div><div class="time-label">SEARCH</div></div>
+        <div class="time-slot"><div class="time-icon">⌘</div><div class="time-label">TOOLS</div></div>
+      </div>
+    </section>
+    <section class="modules-grid" aria-label="Command modules">
+      <button class="module-card" data-module-go="archive"><span class="module-title">ARCHIVE</span><span class="module-desc">Browse and manage your local files</span></button>
+      <button class="module-card" data-module-go="network"><span class="module-title">LABORATORY</span><span class="module-desc">Offline network and utility tools</span></button>
+      <button class="module-card" data-module-go="offline"><span class="module-title">ATLAS</span><span class="module-desc">Explore your offline knowledge library</span></button>
+      <button class="module-card" data-module-go="security"><span class="module-title">SENTINEL</span><span class="module-desc">Defensive security and local inspection</span></button>
+      <button class="module-card" data-module-go="knowledge"><span class="module-title">NETWORK</span><span class="module-desc">Search indexed knowledge and references</span></button>
+      <button class="module-card" data-module-go="notes"><span class="module-title">FORGE</span><span class="module-desc">Create notes and personal records</span></button>
+    </section>
+  </main>
 </section>
 
 <section id="archive" class="view hidden"><div class="section-row"><div><div class="eyebrow">AFDRIVE · PERSONAL FILE ARCHIVE</div><h2>Local file vault</h2><p class="muted">Browse files only inside folders you explicitly add in Settings.</p></div><button id="file-refresh" class="secondary">↻ Refresh files</button></div><div class="archive-layout"><article class="surface"><div class="searchbar"><input id="file-filter" placeholder="Filter file names…"></div><div id="file-breadcrumb" class="muted">Selected folders</div><div class="action-row file-tools"><button id="folder-create" class="secondary">＋ New folder</button><button id="file-upload" type="button" class="upload-trigger"><span class="upload-symbol">↑</span><span><b>Choose a file</b><small>Browse in OUTPOST or on device</small></span></button></div><div class="action-row file-tools"><button id="zip-selected" class="secondary">Zip selected</button><button id="duplicate-scan" class="secondary">Find duplicates</button></div><div id="duplicate-results" class="items"></div><div id="file-list" class="items"></div></article><article class="surface"><div class="eyebrow">FILE INSPECTOR</div><h3>Selected file</h3><p class="muted">Inspect metadata, SHA-256 and supported text previews. Files are never executed.</p><div id="file-analysis" class="items empty-state">Choose a file from the archive.</div></article></div></section>
@@ -78,26 +103,53 @@ python scripts/install_kiwix.py</pre><p>Requires Node.js 18.18+ and npm. It down
 
 <section id="network" class="view hidden"><div class="section-row"><div><div class="eyebrow">LOCAL NETWORK UTILITIES</div><h2>IP toolbox</h2><p class="muted">Calculate IPv4 and IPv6 network ranges entirely offline.</p></div></div><div class="two-col"><article class="surface"><div class="eyebrow">SUBNET CALCULATOR</div><h3>Address details</h3><form id="ip-form"><input id="ip-input" placeholder="192.168.1.42/24 or 2001:db8::1/64" autocomplete="off" required><button class="primary">Calculate range ↗</button></form><div id="ip-results" class="items"></div></article><article class="surface"><div class="eyebrow">LOCAL PROCESSING</div><h3>No lookups. No scans.</h3><p class="muted">Calculations use Python's built-in IP address library. OUTPOST does not contact, scan or probe any host.</p><div class="section-row ip-history-heading"><div><h3>Recent calculations</h3><p class="muted">Stored only in this browser on this device.</p></div><button id="ip-history-clear" class="quiet-button" type="button">Clear</button></div><div id="ip-history" class="ip-history"></div></article></div></section>
 
-<section id="settings" class="view reference-settings" aria-label="OUTPOST settings">
-<button class="image-hotspot settings-back" id="settings-back" aria-label="Back"></button>
-<input class="image-hotspot setting-glow" id="pref-glow" type="range" min="0" max="100" value="65" aria-label="Display brightness"/>
-<input class="image-hotspot setting-scale" id="pref-scale" type="range" min="85" max="115" value="100" aria-label="Interface scale"/>
-<input class="image-hotspot setting-motion" id="pref-motion" type="range" min="0" max="100" value="55" aria-label="Display motion"/>
-<input class="image-hotspot setting-audio" id="pref-audio" type="range" min="0" max="100" value="70" aria-label="Audio level"/>
-<input class="image-hotspot setting-alert" id="pref-alert" type="range" min="0" max="100" value="45" aria-label="Alert level"/>
-<input class="image-hotspot setting-toggle-one" id="pref-fullglow" type="checkbox" checked aria-label="Glow"/>
-<input class="image-hotspot setting-toggle-two" id="pref-compact" type="checkbox" aria-label="Compact mode"/>
-<input class="image-hotspot setting-toggle-three" id="pref-effects" type="checkbox" checked aria-label="Motion effects"/>
-<input class="image-hotspot setting-toggle-four" id="pref-audio-on" type="checkbox" aria-label="Audio"/>
-<div class="settings-functional">
-<label>INDEX FOLDERS <textarea id="roots" placeholder="/storage/emulated/0/Documents"></textarea></label>
-<div class="action-row"><button id="save-settings" class="secondary">SAVE</button><button id="index-now" class="secondary">INDEX</button></div>
-<p id="settings-message" class="muted"></p>
-<div class="action-row"><button id="export-backup" class="secondary">EXPORT BACKUP</button><button id="import-backup" type="button" class="secondary">IMPORT</button><button id="reset-outpost-full" class="danger-button">RESET</button></div>
-<button id="settings-reset-visual" class="secondary">RESET DISPLAY</button>
-<button id="copy-settings-result" class="secondary" type="button" disabled>COPY RESULT</button>
-<button id="reset-index-settings" class="secondary" type="button">RESET INDEX</button>
-</div>
+<section id="settings" class="view screen settings-screen" aria-label="OUTPOST settings">
+  <div class="cosmos-bg"><div class="stars"></div></div>
+  <header class="top-bar"><button class="back-btn" id="settings-back">‹ BACK</button><div class="header-title">OUTPOST <span>//</span> SETTINGS</div><div class="header-code">SYSTEM CONFIGURATION</div></header>
+  <div class="settings-grid">
+    <article class="settings-card"><h3 class="card-header">DISPLAY</h3>
+      <label class="control-row">Brightness <input id="pref-glow" type="range" min="0" max="100" value="65"></label>
+      <label class="control-row">Interface scale <input id="pref-scale" type="range" min="85" max="115" value="100"></label>
+      <label class="control-row">Motion <input id="pref-motion" type="range" min="0" max="100" value="55"></label>
+      <label class="control-row">Red glow <input id="pref-fullglow" type="checkbox" checked></label>
+    </article>
+    <article class="settings-card"><h3 class="card-header">AUDIO</h3>
+      <label class="control-row">Master volume <input id="pref-audio" type="range" min="0" max="100" value="70"></label>
+      <label class="control-row">Interface SFX <input id="pref-alert" type="range" min="0" max="100" value="45"></label>
+      <label class="control-row">Ambient synth <input id="pref-audio-on" type="checkbox"></label>
+      <div class="settings-note">Audio controls are stored locally; no sound is played unless enabled by a supported feature.</div>
+    </article>
+    <article class="settings-card"><h3 class="card-header">SYSTEM</h3>
+      <label class="control-row">Tactical overlay <input id="pref-effects" type="checkbox" checked></label>
+      <label class="control-row">Full screen <input id="pref-compact" type="checkbox"></label>
+      <div class="control-row">Deep search mode <span class="setting-state">AVAILABLE</span></div>
+      <div class="control-row">Voice feedback <span class="setting-state">STANDBY</span></div>
+    </article>
+    <article class="settings-card"><h3 class="card-header">OPERATOR</h3>
+      <div class="control-row">Override lock <span class="setting-state">ARMED</span></div>
+      <div class="meter-label"><span>Cache usage</span><b>80% / 200MB</b></div><div class="meter"><i style="width:80%"></i></div>
+      <label class="control-row">Compact interface <input type="checkbox" id="operator-compact"></label>
+    </article>
+    <article class="settings-card"><h3 class="card-header">STORAGE</h3>
+      <div class="meter-label"><span>Archive memory</span><b>80%</b></div><div class="meter"><i style="width:80%"></i></div>
+      <div class="control-row">Local index <span class="setting-state">DEVICE</span></div>
+      <div class="settings-note">Manage indexed folders and local data below.</div>
+    </article>
+    <article class="settings-card"><h3 class="card-header">ABOUT</h3>
+      <div class="control-row">Core build <span class="setting-state">OUTPOST</span></div>
+      <div class="control-row">Version <span class="setting-state">v1.0</span></div>
+      <div class="meter-label"><span>System integrity</span><b>100%</b></div><div class="meter"><i style="width:100%"></i></div>
+      <button id="settings-reset-visual" class="reset-visual">RESET OUTPOST RED GLOW</button>
+    </article>
+  </div>
+  <div class="settings-functional">
+    <label>INDEX FOLDERS <textarea id="roots" placeholder="/storage/emulated/0/Documents"></textarea></label>
+    <div class="action-row"><button id="save-settings" class="secondary">SAVE</button><button id="index-now" class="secondary">INDEX</button></div>
+    <p id="settings-message" class="muted"></p>
+    <div class="action-row"><button id="export-backup" class="secondary">EXPORT BACKUP</button><button id="import-backup" type="button" class="secondary">IMPORT</button><button id="reset-outpost-full" class="danger-button">RESET</button></div>
+    <button id="copy-settings-result" class="secondary" type="button" disabled>COPY RESULT</button>
+    <button id="reset-index-settings" class="secondary" type="button">RESET INDEX</button>
+  </div>
 </section></section>
 
 
