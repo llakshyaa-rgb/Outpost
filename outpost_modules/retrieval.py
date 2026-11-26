@@ -52,7 +52,7 @@ def match_expressions(query: str) -> list[str]:
         variants = [word]
         if not prefix:
             variants.extend(_SYNONYMS.get(word.casefold(), ()))
-            if len(word) >= 4:
+            if len(word) >= 2:
                 variants.append(word + "*")
         tokens = list(dict.fromkeys(
             _fts_token(v[:-1], True) if v.endswith("*") else _fts_token(v, prefix if v == word else False)
