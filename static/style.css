@@ -437,3 +437,14 @@ body{min-height:100dvh}
  #overview .module-card{min-height:70px;padding:10px}
  #settings .settings-card{padding:9px;gap:7px}
 }
+
+
+/* Ensure the active view itself is a full-height flex screen. */
+#overview:not(.hidden),#settings:not(.hidden){display:flex!important;flex-direction:column;position:absolute;inset:0;width:100%;height:100dvh;min-height:100dvh;overflow:hidden}
+#overview.screen{padding:clamp(18px,3vw,42px) clamp(20px,4vw,56px)}
+#settings.screen{padding:clamp(18px,3vw,42px) clamp(20px,4vw,56px)}
+@media(orientation:portrait){
+ #overview.screen{padding:calc(env(safe-area-inset-top) + 10px) 13px max(10px,env(safe-area-inset-bottom))}
+ #settings.screen{padding:calc(env(safe-area-inset-top) + 10px) 13px max(10px,env(safe-area-inset-bottom))}
+ #overview .command-main{height:auto;flex:1;min-height:0}
+}
