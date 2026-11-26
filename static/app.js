@@ -228,3 +228,18 @@ $('#bughunter-open').onclick=async()=>{try{const d=await api('knowledge/read?pat
 $('#termux-toolbox').onclick=async()=>{try{const d=await api('termux/toolbox');$('#termux-toolbox-list').innerHTML=d.tools.map(x=>'<div class="item"><b>'+esc(x.name)+'</b><p>'+esc(x.purpose)+'</p><small>'+esc(x.usage)+'</small><small>'+esc(x.mode)+' · '+(d.available[x.name]?'installed':'not found')+'</small></div>').join('')}catch(e){toast(e.message)}};
 window.addEventListener('popstate',e=>{const state=e.state||{};if(state.outpostFolder!==undefined){loadFiles(state.outpostFolder);return}view(location.hash.slice(1)||'overview',false)});
 view(location.hash.slice(1)||'overview',false);
+
+
+// Landing navigation and local visual preferences.
+(()=>{
+ const landing=document.getElementById('landing'),shell=document.querySelector('.app-shell');
+ const enter=(target='overview')=>{landing.hidden=true;shell.classList.remove('app-hidden');if(typeof view==='function')view(target);window.scrollTo(0,0)};
+ document.getElementById('landing-start').addEventListener('click',()=>enter('overview'));
+ document.getElementById('landing-settings').addEventListener('click',()=>enter('settings'));
+ document.getElementById('landing-leave').addEventListener('click',()=>{document.querySelector('.landing-menu').innerHTML='<div class="landing-kicker">SESSION CLOSED</div><h2 style="color:#fff">OUTPOST is standing by.</h2><p class="muted">You can close this tab. Your local data remains on this device.</p><button class="landing-choice" id="landing-return">RETURN <span>↗</span></button>';document.getElementById('landing-return').onclick=()=>location.reload()});
+ const ids=['pref-glow','pref-scale','pref-motion','pref-audio','pref-alert','pref-fullglow','pref-compact','pref-effects','pref-audio-on'];
+ const defaults={'pref-glow':'65','pref-scale':'100','pref-motion':'55','pref-audio':'70','pref-alert':'45','pref-fullglow':true,'pref-compact':false,'pref-effects':true,'pref-audio-on':false};
+ const apply=()=>{const get=id=>localStorage.getItem('outpost-'+id);document.body.classList.toggle('low-glow',get('pref-fullglow')==='false'||get('pref-glow')==='0');document.body.classList.toggle('compact-ui',get('pref-compact')==='true');document.body.classList.toggle('no-motion',get('pref-effects')==='false'||get('pref-motion')==='0');document.documentElement.style.setProperty('--ui-scale',(Number(get('pref-scale')||100)/100).toFixed(2));};
+ ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;const saved=localStorage.getItem('outpost-'+id);if(saved!==null){if(el.type==='checkbox')el.checked=saved==='true';else el.value=saved}else{if(el.type==='checkbox')el.checked=defaults[id];else el.value=defaults[id]}el.addEventListener('input',()=>{localStorage.setItem('outpost-'+id,el.type==='checkbox'?String(el.checked):el.value);apply()})});
+ document.getElementById('settings-reset-visual')?.addEventListener('click',()=>{ids.forEach(id=>localStorage.removeItem('outpost-'+id));ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;el.type==='checkbox'?el.checked=defaults[id]:el.value=defaults[id]});apply()});apply();
+})();
