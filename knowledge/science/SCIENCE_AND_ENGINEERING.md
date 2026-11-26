@@ -1,5 +1,8 @@
 # Science, Mathematics and Engineering — Field Guide
 
+
+**Search terms:** science, engineering, physics, chemistry, biology, mathematics, technology, scientific method, engineering disciplines.
+
 ## Scientific method
 State a testable question, review prior evidence, define hypotheses, design a controlled method, collect observations, analyse uncertainty and publish reproducible methods. A hypothesis is not confirmed merely because one observation agrees with it. Correlation alone does not establish causation. Replication and independent evidence matter.
 
