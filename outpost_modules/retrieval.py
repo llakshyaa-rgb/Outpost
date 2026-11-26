@@ -40,6 +40,9 @@ def match_expressions(query: str) -> list[str]:
     matches = _WORDS.findall(query[:500])
     if not matches:
         return []
+    # If the user explicitly typed an FTS boolean operator, keep the
+    # query in literal-token mode: do not inject OR-based prefix expansions.
+    literal_boolean = any(word.upper() in {"AND", "OR", "NOT", "NEAR"} for word, _ in matches)
     terms = []
     for word, wildcard in matches:
         if word.casefold() in _STOP and word not in {"AND","OR","NOT","NEAR"}:
@@ -52,7 +55,7 @@ def match_expressions(query: str) -> list[str]:
         variants = [word]
         if not prefix:
             variants.extend(_SYNONYMS.get(word.casefold(), ()))
-            if len(word) >= 2:
+            if len(word) >= 2 and not literal_boolean:
                 variants.append(word + "*")
         tokens = list(dict.fromkeys(
             _fts_token(v[:-1], True) if v.endswith("*") else _fts_token(v, prefix if v == word else False)
