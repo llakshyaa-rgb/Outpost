@@ -222,3 +222,54 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#03050a;col
 body.no-motion *{animation:none!important;transition:none!important}
 @media(max-width:700px){.reference-home{grid-template-columns:42% 58%;aspect-ratio:auto}.home-menu{padding-left:5vw}.home-menu button{width:min(34vw,180px);font-size:clamp(20px,6vw,30px)}.home-wordmark{font-size:clamp(42px,10vw,75px);text-align:center}.reference-dashboard,.reference-settings{aspect-ratio:auto;min-height:100dvh!important}.reference-dashboard{padding:14px}.reference-top{grid-template-columns:auto 1fr auto;gap:5px}.ref-title{font-size:clamp(16px,4.4vw,24px)}.ref-search{width:100px;height:26px}.reference-stage{height:auto;min-height:calc(100dvh - 80px);grid-template-columns:1fr;gap:12px}.reference-weather{min-height:180px}.reference-modules{height:auto;min-height:48vh;gap:12px}.reference-module strong{font-size:clamp(21px,6vw,32px)}.reference-module span{font-size:clamp(10px,2.8vw,13px)}.settings-head{height:44px}.settings-reference-grid{height:auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.settings-tile{min-height:170px;padding:10px}.settings-tile h3{font-size:17px}.settings-tile label{font-size:9px}.settings-tile input[type=range]{width:45%}}
 @media(max-width:420px){.reference-settings .settings-reference-grid{grid-template-columns:1fr}.settings-tile{min-height:150px}.reference-weather{min-height:155px}.reference-modules{min-height:54vh}}
+
+/* OUTPOST reference recreation: the supplied artwork is used directly, not approximated. */
+:root{color-scheme:dark}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#02030a}
+.app-shell{display:block!important;width:100%;height:100dvh;min-height:100dvh;overflow:hidden;background:#02030a}
+.command-bar,.topbar{display:none!important}
+.main{width:100%;height:100dvh;max-width:none;margin:0;padding:0;overflow:hidden;background:#02030a}
+.view{display:none;position:absolute;inset:0;width:100%;height:100dvh;min-height:100dvh;margin:0;padding:0;overflow:hidden}
+.view:not(.hidden){display:block}
+.app-hidden{display:none!important}
+.reference-home{display:block;position:fixed;inset:0;z-index:500;background:#02030a url('/static/assets/reference-home.jpg') center center/100% 100% no-repeat}
+.reference-dashboard{background:#02030a url('/static/assets/reference-command.jpg') center center/100% 100% no-repeat}
+.reference-settings{background:#02030a url('/static/assets/reference-settings.jpg') center center/100% 100% no-repeat}
+.image-hotspot{position:absolute;display:block;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;cursor:pointer;z-index:5;color:transparent;outline:none}
+.image-hotspot:focus-visible{outline:2px solid #ff5265;outline-offset:2px;background:#ff26351c}
+.home-start{left:5%;top:46%;width:34%;height:12%}
+.home-settings{left:5%;top:59%;width:34%;height:12%}
+.home-leave{left:5%;top:72%;width:34%;height:12%}
+.dashboard-back{left:1%;top:1%;width:8%;height:10%}
+.dashboard-search{left:73%;top:4%;width:23%;height:8%;background:transparent;color:transparent;caret-color:#ff5265;font-size:16px}
+.dashboard-search::placeholder{color:transparent}
+.module-archive{left:31%;top:54%;width:18%;height:19%}
+.module-laboratory{left:49%;top:54%;width:18%;height:19%}
+.module-atlas{left:67%;top:54%;width:16%;height:19%}
+.module-sentinel{left:31%;top:75%;width:18%;height:20%}
+.module-network{left:49%;top:75%;width:18%;height:20%}
+.module-forge{left:67%;top:75%;width:16%;height:20%}
+.settings-back{left:1%;top:1%;width:9%;height:12%}
+.reference-settings input[type=range]{position:absolute;z-index:6;height:14px;accent-color:#f34a5c;opacity:.88;background:transparent}
+.setting-glow{left:10%;top:30%;width:19%}
+.setting-scale{left:10%;top:39%;width:19%}
+.setting-motion{left:10%;top:48%;width:19%}
+.setting-audio{left:38%;top:34%;width:19%}
+.setting-alert{left:38%;top:44%;width:19%}
+.reference-settings input[type=checkbox]{position:absolute;z-index:6;width:22px;height:22px;accent-color:#f13b50;opacity:.9}
+.setting-toggle-one{left:68%;top:30%}.setting-toggle-two{left:68%;top:39%}.setting-toggle-three{left:68%;top:48%}.setting-toggle-four{left:68%;top:57%}
+.settings-functional{position:absolute;z-index:7;right:2%;bottom:2%;width:24%;max-height:31%;overflow:auto;padding:8px;background:#08090de8;border:1px solid #6b1d2b;box-shadow:0 0 18px #c21f3444}
+.settings-functional label{font-size:9px;color:#f3dfe3}.settings-functional textarea{display:block;width:100%;height:38px;min-height:32px;background:#100c12;color:#fff;border:1px solid #682331;font-size:10px}
+.settings-functional .action-row{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0}.settings-functional button{padding:5px 7px;font-size:9px}
+.settings-functional .muted{font-size:9px;margin:3px 0}
+@media(orientation:portrait){
+ .reference-home,.reference-dashboard,.reference-settings{background-size:100% 100%}
+ .home-start{left:5%;top:46%;width:39%;height:12%}.home-settings{left:5%;top:59%;width:39%;height:12%}.home-leave{left:5%;top:72%;width:39%;height:12%}
+ .dashboard-back{left:1%;top:1%;width:12%;height:8%}.dashboard-search{left:66%;top:2%;width:32%;height:7%}
+ .module-archive{left:25%;top:50%;width:23%;height:18%}.module-laboratory{left:50%;top:50%;width:23%;height:18%}.module-atlas{left:75%;top:50%;width:23%;height:18%}
+ .module-sentinel{left:25%;top:71%;width:23%;height:19%}.module-network{left:50%;top:71%;width:23%;height:19%}.module-forge{left:75%;top:71%;width:23%;height:19%}
+ .settings-functional{right:2%;bottom:2%;width:35%;max-height:26%}
+}
+@media(max-width:480px){
+ .settings-functional{width:42%;max-height:28%}
+}
