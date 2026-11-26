@@ -653,25 +653,35 @@ class Handler(BaseHTTPRequestHandler):
             if row is None:
                 self.send_json({"error":"Document not found. Re-index the folder and try again."},404); return
             self.send_json(dict(row)); return
+        if u.path == "/api/knowledge/audit":
+            from scripts.audit_knowledge import audit_knowledge
+            self.send_json(audit_knowledge()); return
         if u.path == "/api/search":
             from urllib.parse import parse_qs
-            q = parse_qs(u.query).get("q",[""])[0].strip()
+            q = parse_qs(u.query).get("q",[""])[0].strip()[:300]
             if not q: self.send_json([]); return
-            from outpost_modules.retrieval import match_expressions
-            like="%"+q.replace("%","")+"%"
-            docs=[]
+            from outpost_modules.retrieval import match_expressions, typo_candidates
+            like="%"+q.replace("%","").replace("_","")+"%"
+            docs=[]; suggestions=[]
             with connect() as c:
                 for expression in match_expressions(q):
-                    try:
-                        docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,snippet(documents_fts,2,'⟦','⟧',' … ',18) snippet,'file' kind,bm25(documents_fts) rank FROM documents_fts JOIN documents d ON d.id=documents_fts.rowid WHERE documents_fts MATCH ? ORDER BY rank LIMIT 40",(expression,))]
-                    except sqlite3.OperationalError:
-                        docs=[]
+                    try: docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,snippet(documents_fts,2,'⟦','⟧',' … ',22) snippet,'file' kind,bm25(documents_fts) rank FROM documents_fts JOIN documents d ON d.id=documents_fts.rowid WHERE documents_fts MATCH ? ORDER BY rank LIMIT 40",(expression,))]
+                    except sqlite3.OperationalError: docs=[]
                     if docs: break
                 if not docs:
-                    docs=[dict(x) for x in c.execute("SELECT id,name,path,substr(content,1,260) snippet,'file' kind FROM documents WHERE name LIKE ? OR content LIKE ? LIMIT 40",(like,like))]
-                notes=[dict(x) for x in c.execute("SELECT id,title name,'note' path,substr(body,1,260) snippet,'note' kind FROM notes WHERE title LIKE ? OR body LIKE ? LIMIT 30",(like,like))]
-                refs=[dict(x) for x in c.execute("SELECT id,title name,url path,substr(note,1,260) snippet,'bookmark' kind FROM bookmarks WHERE title LIKE ? OR note LIKE ? OR url LIKE ? LIMIT 30",(like,like,like))]
-            self.send_json(docs+notes+refs); return
+                    try: vocab=[x[0] for x in c.execute("SELECT DISTINCT term FROM documents_fts_vocab LIMIT 50000")]
+                    except sqlite3.OperationalError: vocab=[]
+                    suggestions=typo_candidates(q,vocab)
+                    for term in suggestions:
+                        try: docs=[dict(x) for x in c.execute("SELECT d.id,d.name,d.path,snippet(documents_fts,2,'⟦','⟧',' … ',22) snippet,'file' kind,bm25(documents_fts) rank FROM documents_fts JOIN documents d ON d.id=documents_fts.rowid WHERE documents_fts MATCH ? ORDER BY rank LIMIT 40", ('"'+term.replace('"','""')+'"',))]
+                        except sqlite3.OperationalError: docs=[]
+                        if docs: break
+                if not docs: docs=[dict(x) for x in c.execute("SELECT id,name,path,substr(content,1,320) snippet,'file' kind FROM documents WHERE name LIKE ? OR content LIKE ? ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END LIMIT 40",(like,like,like))]
+                notes=[dict(x) for x in c.execute("SELECT id,title name,'note' path,substr(body,1,320) snippet,body content,'note' kind FROM notes WHERE title LIKE ? OR body LIKE ? ORDER BY CASE WHEN title LIKE ? THEN 0 ELSE 1 END LIMIT 30",(like,like,like))]
+                refs=[dict(x) for x in c.execute("SELECT id,title name,url path,substr(note,1,320) snippet,note content,url,'bookmark' kind FROM bookmarks WHERE title LIKE ? OR note LIKE ? OR url LIKE ? ORDER BY CASE WHEN title LIKE ? THEN 0 ELSE 1 END LIMIT 30",(like,like,like,like))]
+            results=docs+notes+refs
+            for item in results: item["suggested_terms"]=suggestions
+            self.send_json(results); return
         if u.path == "/":
             return self.serve_static("index.html")
         if u.path.startswith("/static/"):
