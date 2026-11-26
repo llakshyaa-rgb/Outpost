@@ -157,3 +157,18 @@ Useful research gateways include WorldLII, the UN Treaty Collection, FAOLEX, ILO
 **Provenance rule:** every imported legal source should retain its jurisdiction, issuing authority, source URL, document type, publication/effective date when available, and date last checked. Mark superseded or uncertain material. Do not label a partial collection as comprehensive or present it as legal advice.
 
 The map in the Offline Library is a coverage plan and source directory. It does not mean those datasets are already downloaded. ZIM archives and curated packs remain user-selected imports; OUTPOST does not silently download large datasets.
+
+## Expanded offline knowledge library
+
+OUTPOST now ships with built-in, searchable Markdown field guides under `knowledge/`:
+- **Global markets and investing:** stocks, bonds, ETFs, exchanges, valuation, financial statements, derivatives, portfolio construction, market structure, fraud checks and data freshness.
+- **Personal finance, economics and accounting:** budgeting, debt, interest, inflation, insurance, bookkeeping, macroeconomics and business fundamentals.
+- **Computing, networks and cybersecurity:** programming, operating systems, protocols, web architecture, privacy, threat modelling and safe analysis.
+- **Science, mathematics and engineering:** scientific method, mathematics, physics, chemistry, biology, climate, energy and engineering practice.
+- **World reference and practical knowledge:** health literacy, emergency readiness, geography, world history, global legal systems, agriculture, environment, languages and research skills.
+- **Global financial data source directory:** international economic datasets, market regulators, exchange/issuer primary sources and suggested offline datasets.
+
+These are actual local reference files, not just category labels. The existing local Knowledge Search indexes the built-in `knowledge/` folder automatically, and the Offline Library catalog discovers the files. After pulling the repository, restart OUTPOST and search topics such as `P/E ratio`, `bond duration`, `ETF`, `inflation`, `cash flow`, `DNS`, or `climate`.
+
+**Important boundary:** the built-in guides are educational foundations, not a complete encyclopedia, current law database, investment recommendation or live market feed. For live prices and news, an explicitly refreshed data source is required. For offline market research, import licensed historical datasets and preserve their timestamps, currency, venue, provider and licence. OUTPOST does not automatically download large datasets or make market-data API calls.
+
