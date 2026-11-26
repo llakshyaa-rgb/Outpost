@@ -1,7 +1,7 @@
 import struct
 import unittest
 
-from outpost_modules.retrieval import match_expressions, split_sections
+from outpost_modules.retrieval import match_expressions, split_sections, typo_candidates
 from outpost_modules.cyberdesk import analyze, carve, elf_header, pcap_summary, strings
 
 
@@ -23,6 +23,13 @@ class RetrievalTests(unittest.TestCase):
         self.assertIn('"sexual media"', expressions[0])
         typo = match_expressions("nudely")
         self.assertIn('"nudity"', typo[0])
+
+    def test_prefix_search_for_incomplete_word(self):
+        expressions = match_expressions("biol")
+        self.assertIn('"biol"*', expressions[0])
+
+    def test_typo_suggestions_use_indexed_vocabulary(self):
+        self.assertEqual(typo_candidates("biolgy", ["biology", "chemistry"]), ["biology"])
 
     def test_prefix_search_wildcard(self):
         expressions = match_expressions("reproduce*")
