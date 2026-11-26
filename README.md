@@ -172,3 +172,14 @@ These are actual local reference files, not just category labels. The existing l
 
 **Important boundary:** the built-in guides are educational foundations, not a complete encyclopedia, current law database, investment recommendation or live market feed. For live prices and news, an explicitly refreshed data source is required. For offline market research, import licensed historical datasets and preserve their timestamps, currency, venue, provider and licence. OUTPOST does not automatically download large datasets or make market-data API calls.
 
+
+
+## Global knowledge coverage framework
+
+OUTPOST's built-in `knowledge/` library is indexed automatically alongside explicitly selected folders. The **Global Knowledge Atlas** at `knowledge/coverage/KNOWLEDGE_ATLAS.md` maps 16 major domains and their subtopics, with honest coverage states (covered, partial, planned and dynamic). It includes global and regional scope rules and a checklist for finding missing areas. The atlas is a roadmap, not a claim that every listed subject is already complete.
+
+The starter library now includes global primers for natural sciences, human biology and health, human reproduction and sexual-health literacy, law and government, world history, geography and environment, society and media literacy, practical life skills, arts, engineering, economics and business, astronomy and space, and research/data literacy. The sexuality article is factual, non-graphic health education and includes consent, reproductive health, nudity contexts, pornography/media literacy and online safety.
+
+Search includes explicit vocabulary bridges for common synonyms and spelling variants (for example sex/sexuality, porn/pornography, nude/nudity, reproduce/reproduction, and a common misspelling such as nudely), plus FTS prefix queries such as `reproduce*`. Add a **Search terms** line to each new article so everyday wording finds it.
+
+Run `python scripts/audit_knowledge.py` to check that articles have headings, search terms and a minimum useful length. This structural audit cannot certify factual accuracy or completeness; use the atlas to identify planned/partial areas and review dynamic subjects against current official sources.
