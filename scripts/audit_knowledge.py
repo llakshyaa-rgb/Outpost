@@ -33,9 +33,10 @@ def audit_knowledge():
     atlas_text = ATLAS.read_text(encoding="utf-8", errors="replace") if ATLAS.is_file() else ""
     if "\\n" in atlas_text:
         errors.append("Coverage atlas contains literal \\n text instead of real line breaks")
+    gaps = re.findall(r"(?m)^\\s*-\\s*\\[ \\]\\s+(.+)$", atlas_text)
     return {"articles":len(articles),"errors":errors,"warnings":warnings,
-            "atlas_present":ATLAS.is_file(),"domains":16,
-            "note":"Structural and discoverability checks only; not proof of factual completeness."}
+            "atlas_present":ATLAS.is_file(),"domains":16,"atlas_gaps":gaps,
+            "note":"Structural and discoverability checks only; unchecked atlas items are review prompts, not proof of missing facts."}
 
 def main():
     result=audit_knowledge()
