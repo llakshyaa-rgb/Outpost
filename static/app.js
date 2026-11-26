@@ -57,8 +57,34 @@ window.deleteItem=async(t,id)=>{if(!await outpostDialog({title:'Delete this item
 $('#note-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('notes',{method:'POST',body:JSON.stringify({title:$('#note-title').value,body:$('#note-body').value})});e.target.reset();toast('Note saved locally');await loadNotes();await refresh()}catch(x){toast(x.message)}});
 $('#collection-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('collections',{method:'POST',body:JSON.stringify({name:$('#collection-name').value})});e.target.reset();toast('Collection created');await loadCollections();await refresh()}catch(x){toast(x.message)}});
 $('#bookmark-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('bookmarks',{method:'POST',body:JSON.stringify({title:$('#bookmark-title').value,url:$('#bookmark-url').value,note:$('#bookmark-note').value,collection_id:Number($('#bookmark-collection').value)||null})});e.target.reset();toast('Reference saved');await loadCollections();await refresh()}catch(x){toast(x.message)}});
-async function runSearch(input,result){const q=$(input).value.trim();if(!q)return;try{const a=await api('search?q='+encodeURIComponent(q));$(result).innerHTML=a.map(x=>'<div class="item"><small>'+esc((x.kind||'file').toUpperCase())+'</small><b>'+esc(x.name)+'</b><p>'+esc(x.snippet)+'</p><small>'+esc(x.path)+'</small></div>').join('')||'<p class="empty-state">No matches. Add folders in Settings and index them first.</p>'}catch(e){toast(e.message)}}
+async function runSearch(input,result){const q=$(input).value.trim();if(!q)return;try{const a=await api('search?q='+encodeURIComponent(q));$(result).innerHTML=a.map(x=>'<div class="item search-result-item"><div class="search-result-copy"><small>'+esc((x.kind||'file').toUpperCase())+'</small><b>'+esc(x.name)+'</b><p>'+esc(x.snippet)+'</p><small>'+esc(x.path)+'</small></div>'+(x.kind==='file'?'<button type="button" class="secondary search-open-document" data-open-document="'+Number(x.id)+'">Read full document ↗</button>':'')+'</div>').join('')||'<p class="empty-state">No matches. Add folders in Settings and index them first.</p>'}catch(e){toast(e.message)}}
 $('#search-btn').onclick=()=>runSearch('#search-q','#search-results');$('#search-q').onkeydown=e=>{if(e.key==='Enter')runSearch('#search-q','#search-results')};
+function renderDocumentMarkdown(source){
+ const tick=String.fromCharCode(96);
+ const inline=value=>esc(value).replace(new RegExp(tick+"([^"+tick+"]+)"+tick,"g"),"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>").replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>").replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,"<a href=\"$2\" target=\"_blank\" rel=\"noopener noreferrer\">$1</a>");
+ const lines=String(source||"").replace(/\r/g,"").split("\n");let out="",para=[],list="",inCode=false,code=[];
+ const flushP=()=>{if(para.length){out+="<p>"+inline(para.join(" "))+"</p>";para=[]}};
+ const flushL=()=>{if(list){out+="</"+list+">";list=""}};
+ for(const line of lines){
+  if(line.trim().startsWith(tick+tick+tick)){flushP();flushL();if(inCode){out+="<pre class=\"document-code\"><code>"+esc(code.join("\n"))+"</code></pre>";code=[];inCode=false}else inCode=true;continue}
+  if(inCode){code.push(line);continue}
+  const h=line.match(/^(#{1,6})\s+(.+)$/);
+  if(h){flushP();flushL();const n=h[1].length;out+="<h"+n+">"+inline(h[2])+"</h"+n+">";continue}
+  if(/^\s*([-*_])\1\1+\s*$/.test(line)){flushP();flushL();out+="<hr>";continue}
+  const ul=line.match(/^\s*[-*+]\s+(.+)$/),ol=line.match(/^\s*\d+[.)]\s+(.+)$/);
+  if(ul||ol){flushP();const kind=ul?"ul":"ol";if(list!==kind){flushL();list=kind;out+="<"+kind+">"}out+="<li>"+inline((ul||ol)[1])+"</li>";continue}
+  if(!line.trim()){flushP();flushL();continue}
+  flushL();para.push(line.trim());
+ }
+ if(inCode)out+="<pre class=\"document-code\"><code>"+esc(code.join("\n"))+"</code></pre>";
+ flushP();flushL();return out||"<p class=\"muted\">This document is empty.</p>";
+}
+$('#search-results').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-open-document]');if(!b)return;
+ const id=Number(b.dataset.openDocument);if(!Number.isInteger(id)||id<1)return;
+ b.disabled=true;b.textContent='Opening…';
+ try{const d=await api('document?id='+id);const box=$('#search-reader');box.hidden=false;box.innerHTML='<div class="document-reader-head"><div><div class="eyebrow">LOCAL DOCUMENT · FULL TEXT</div><h3>'+esc(d.name)+'</h3><p class="muted">'+esc(d.path)+' · '+Number(d.content.length).toLocaleString()+' characters</p></div><button type="button" class="secondary" id="close-search-reader">Close reader</button></div><div class="document-reader-actions"><button type="button" class="secondary" id="copy-search-document">Copy full text</button></div><article class="document-markdown">'+renderDocumentMarkdown(d.content)+'</article>';box.scrollIntoView({behavior:'smooth',block:'start'});$('#close-search-reader').onclick=()=>{box.hidden=true;box.innerHTML=''};$('#copy-search-document').onclick=()=>copyText(d.content)}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent='Read full document ↗'}
+});
 async function loadSettings(){try{const s=await api('status');$('#roots').value=(s.index_roots||[]).join('\n')}catch(e){toast(e.message)}}
 $('#save-settings').onclick=async()=>{try{const a=$('#roots').value.split('\n').map(x=>x.trim()).filter(Boolean);const s=await api('settings',{method:'POST',body:JSON.stringify({index_roots:a})});$('#roots').value=s.index_roots.join('\n');toast('Folder settings saved')}catch(e){toast(e.message)}};
 $('#index-now').onclick=async()=>{const b=$('#index-now');b.disabled=true;$('#settings-message').textContent='Indexing selected folders…';try{const a=await api('index',{method:'POST',body:'{}'});$('#settings-message').textContent='Indexed '+a.indexed+' files · skipped '+a.skipped;toast('Local index updated');await refresh()}catch(e){$('#settings-message').textContent=e.message;toast(e.message)}finally{b.disabled=false}};
