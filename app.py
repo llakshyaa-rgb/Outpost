@@ -641,6 +641,18 @@ class Handler(BaseHTTPRequestHandler):
               {"name":"termux-open","purpose":"Open a local file with an Android app","usage":"termux-open FILE","mode":"opens external app; run manually"}
             ]
             self.send_json({"tools":catalog,"available":{x["name"]:bool(shutil.which(x["name"])) for x in catalog},"execution":"disabled by design; commands are reference-only"}); return
+        if u.path == "/api/document":
+            from urllib.parse import parse_qs
+            raw_id = parse_qs(u.query).get("id", [""])[0]
+            try:
+                doc_id = int(raw_id)
+            except (TypeError, ValueError):
+                self.send_json({"error":"A valid document ID is required"},400); return
+            with connect() as c:
+                row = c.execute("SELECT id,name,path,content,size,modified FROM documents WHERE id=?", (doc_id,)).fetchone()
+            if row is None:
+                self.send_json({"error":"Document not found. Re-index the folder and try again."},404); return
+            self.send_json(dict(row)); return
         if u.path == "/api/search":
             from urllib.parse import parse_qs
             q = parse_qs(u.query).get("q",[""])[0].strip()
