@@ -1,5 +1,8 @@
 # Computing, Networks and Cybersecurity — Offline Reference
 
+
+**Search terms:** computing, computer science, computers, programming, software, hardware, operating systems, networks, internet, databases, cybersecurity, AI, machine learning.
+
 ## Computer foundations
 A computer system combines hardware, firmware, operating systems, applications, storage and networks. The CPU executes instructions; RAM holds working data; persistent storage retains data after power-off. Filesystems map names to stored data. Backups should be tested, versioned and kept separately from the original device.
 
