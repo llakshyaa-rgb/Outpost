@@ -23,18 +23,18 @@ This atlas is the coverage map for the built-in library. It is deliberately hone
 | ID | Domain | Required coverage | Current status |
 |---|---|---|---|
 | NAT | Natural sciences | physics, chemistry, biology, mathematics, statistics, geology, oceanography, meteorology | partial |
-| MED | Medicine and human biology | anatomy, physiology, disease, symptoms, diagnostics, treatment concepts, medicines, mental health, first aid, public health | planned |
+| MED | Medicine and human biology | anatomy, physiology, disease, symptoms, diagnostics, treatment concepts, medicines, mental health, first aid, public health | partial |
 | SEX | Human sexuality and reproduction | puberty, anatomy, menstrual health, sexual development, reproduction, conception, fertility, contraception, STI prevention/testing, consent, relationships, sexual orientation and gender concepts, nudity, pornography/media literacy, exploitation and safety | partial |
 | TEC | Technology and computing | hardware, software, operating systems, programming, networks, internet, databases, AI, data, accessibility | partial |
-| ENG | Engineering and industry | civil, mechanical, electrical, electronics, chemical, manufacturing, materials, energy systems, robotics, maintenance | planned |
+| ENG | Engineering and industry | civil, mechanical, electrical, electronics, chemical, manufacturing, materials, energy systems, robotics, maintenance | partial |
 | FIN | Finance and economics | accounting, personal finance, banking, credit, taxes, markets, investing, economics, trade, insurance, business | partial + dynamic |
-| LAW | Law and government | legal systems, constitutions, rights, criminal/civil law, contracts, property, family, labour, privacy, international law, public administration | planned + dynamic |
-| HIS | History and civilisation | global and regional histories, archaeology, chronology, religions as history, migration, empires, colonialism, decolonisation, conflicts, science and technology history | planned |
-| GEO | Geography and environment | physical/human geography, maps, climate, ecosystems, biodiversity, pollution, conservation, disasters, resources, sustainability | planned + dynamic |
-| SOC | Society and humanities | psychology, sociology, anthropology, philosophy, education, languages, linguistics, media, politics, culture, ethics | planned |
-| LIFE | Practical life | communication, learning, work, careers, housing, food, cooking, clothing, travel, consumer literacy, repair, caregiving, emergency readiness | planned |
-| ART | Arts and entertainment | visual arts, design, architecture, music, literature, theatre, dance, film, photography, games, sport, criticism and copyright | planned |
-| SPACE | Space and exploration | astronomy, astrophysics, planetary science, spaceflight, satellites, navigation, exploration history | planned |
+| LAW | Law and government | legal systems, constitutions, rights, criminal/civil law, contracts, property, family, labour, privacy, international law, public administration | partial + dynamic |
+| HIS | History and civilisation | global and regional histories, archaeology, chronology, religions as history, migration, empires, colonialism, decolonisation, conflicts, science and technology history | partial |
+| GEO | Geography and environment | physical/human geography, maps, climate, ecosystems, biodiversity, pollution, conservation, disasters, resources, sustainability | partial + dynamic |
+| SOC | Society and humanities | psychology, sociology, anthropology, philosophy, education, languages, linguistics, media, politics, culture, ethics | partial |
+| LIFE | Practical life | communication, learning, work, careers, housing, food, cooking, clothing, travel, consumer literacy, repair, caregiving, emergency readiness | partial |
+| ART | Arts and entertainment | visual arts, design, architecture, music, literature, theatre, dance, film, photography, games, sport, criticism and copyright | partial |
+| SPACE | Space and exploration | astronomy, astrophysics, planetary science, spaceflight, satellites, navigation, exploration history | partial |
 | SAFE | Security and safety | personal safety, digital security, privacy, scams, emergency response, workplace safety, risk management, defensive cybersecurity | partial |
 | REF | Reference and data literacy | units, calendars, time zones, language references, datasets, research methods, source evaluation, statistics literacy | partial |
 
