@@ -251,3 +251,26 @@ view(location.hash.slice(1)||'overview',false);
  const full=document.getElementById('operator-compact');full?.addEventListener('change',()=>document.documentElement.classList.toggle('operator-compact',full.checked));
  apply();
 })();
+
+/* Fullscreen + landscape are requested directly from the user's first gesture.
+   Browsers require a gesture for fullscreen/orientation lock; standalone PWA
+   installations also receive landscape from the manifest. */
+(async()=>{
+ const root=document.documentElement;
+ let immersiveRequested=false;
+ async function requestImmersive(){
+   if(immersiveRequested)return; immersiveRequested=true;
+   try{if(!document.fullscreenElement&&root.requestFullscreen)await root.requestFullscreen({navigationUI:'hide'});}catch(e){}
+   try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape');}catch(e){}
+   document.body.classList.add('outpost-immersive');
+ }
+ document.addEventListener('pointerdown',requestImmersive,{capture:true,once:true});
+ document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')requestImmersive();},{once:true});
+ window.addEventListener('orientationchange',()=>{document.body.classList.toggle('outpost-portrait',innerHeight>innerWidth);});
+ try{if(document.fullscreenElement&&screen.orientation?.lock)await screen.orientation.lock('landscape');}catch(e){}
+ const start=document.getElementById('landing-start');
+ const settings=document.getElementById('landing-settings');
+ start?.addEventListener('click',requestImmersive,{capture:true});
+ settings?.addEventListener('click',requestImmersive,{capture:true});
+ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('outpost-immersive');});
+})();
