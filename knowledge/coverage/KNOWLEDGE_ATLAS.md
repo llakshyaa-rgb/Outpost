@@ -34,7 +34,8 @@ This atlas is the coverage map for the built-in library. It is deliberately hone
 | SOC | Society and humanities | psychology, sociology, anthropology, philosophy, education, languages, linguistics, media, politics, culture, ethics | partial |
 | LIFE | Practical life | communication, learning, work, careers, housing, food, cooking, clothing, travel, consumer literacy, repair, caregiving, emergency readiness | partial |
 | ART | Arts and entertainment | visual arts, design, architecture, music, literature, theatre, dance, film, photography, games, criticism and copyright | partial |
-| SPORT | Sports and recreation | team sports, individual sports, athletics, outdoor recreation, mind sports, esports, sports science, rules, governance, inclusion and safety | partial + dynamic |\n| SPACE | Space and exploration | astronomy, astrophysics, planetary science, spaceflight, satellites, navigation, exploration history | partial |
+| SPORT | Sports and recreation | team sports, individual sports, athletics, outdoor recreation, mind sports, esports, sports science, rules, governance, inclusion and safety | partial + dynamic |
+| SPACE | Space and exploration | astronomy, astrophysics, planetary science, spaceflight, satellites, navigation, exploration history | partial |
 | SAFE | Security and safety | personal safety, digital security, privacy, scams, emergency response, workplace safety, risk management, defensive cybersecurity | partial |
 | REF | Reference and data literacy | units, calendars, time zones, language references, datasets, research methods, source evaluation, statistics literacy | partial |
 
@@ -127,7 +128,14 @@ This atlas is the coverage map for the built-in library. It is deliberately hone
 - [ ] Literature, poetry, storytelling, theatre, dance and performance
 - [ ] Film, animation, photography, games, sport and criticism
 - [ ] Copyright, licensing, attribution, public domain and creative ethics
-### SPORT — Sports and recreation\n- [ ] Rules, scoring, equipment and governing bodies for major global sports\n- [ ] Team sports, racket sports, athletics, aquatic, outdoor and combat sports\n- [ ] Mind sports, traditional games, esports and recreational play\n- [ ] Training principles, sports science, injury prevention and recovery\n- [ ] Fair play, anti-doping, safeguarding, inclusion and accessibility\n- [ ] Historical records, schedules and rankings with dated sources\n### SPACE — Space and exploration
+### SPORT — Sports and recreation
+- [ ] Rules, scoring, equipment and governing bodies for major global sports
+- [ ] Team sports, racket sports, athletics, aquatic, outdoor and combat sports
+- [ ] Mind sports, traditional games, esports and recreational play
+- [ ] Training principles, sports science, injury prevention and recovery
+- [ ] Fair play, anti-doping, safeguarding, inclusion and accessibility
+- [ ] Historical records, schedules and rankings with dated sources
+### SPACE — Space and exploration
 - [ ] Sky observation, celestial mechanics, stars, galaxies and cosmology
 - [ ] Solar system, planets, moons, exoplanets and planetary geology
 - [ ] Rockets, orbital mechanics, spacecraft, satellites and space stations
