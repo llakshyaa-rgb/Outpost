@@ -448,3 +448,6 @@ body{min-height:100dvh}
  #settings.screen{padding:calc(env(safe-area-inset-top) + 10px) 13px max(10px,env(safe-area-inset-bottom))}
  #overview .command-main{height:auto;flex:1;min-height:0}
 }
+
+@media(orientation:portrait){#settings .settings-functional{display:none!important}}
+#settings .settings-functional{display:none!important}
