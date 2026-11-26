@@ -1,5 +1,8 @@
 # Personal Finance, Economics and Accounting — Field Guide
 
+
+**Search terms:** personal finance, budgeting, saving, debt, credit, banking, accounting, bookkeeping, balance sheet, income statement, cash flow, taxes.
+
 ## Personal finance foundations
 Track income, fixed costs, variable spending, debt payments, savings and irregular expenses. A budget is a plan, not a judgement. Build an emergency reserve appropriate to income stability and essential expenses. Keep short-term money in instruments whose risk and access match the time it is needed. Understand deposit protection limits and exclusions in the relevant country.
 
