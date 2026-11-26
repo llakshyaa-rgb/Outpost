@@ -230,28 +230,14 @@ window.addEventListener('popstate',e=>{const state=e.state||{};if(state.outpostF
 view(location.hash.slice(1)||'overview',false);
 
 
-// Landing navigation and local visual preferences.
-(()=>{
- const landing=document.getElementById('landing'),shell=document.querySelector('.app-shell');
- const enter=(target='overview')=>{landing.hidden=true;shell.classList.remove('app-hidden');if(typeof view==='function')view(target);window.scrollTo(0,0)};
- document.getElementById('landing-start').addEventListener('click',()=>enter('overview'));
- document.getElementById('landing-settings').addEventListener('click',()=>enter('settings'));
- document.getElementById('landing-leave').addEventListener('click',()=>{document.querySelector('.landing-menu').innerHTML='<div class="landing-kicker">SESSION CLOSED</div><h2 style="color:#fff">OUTPOST is standing by.</h2><p class="muted">You can close this tab. Your local data remains on this device.</p><button class="landing-choice" id="landing-return">RETURN <span>↗</span></button>';document.getElementById('landing-return').onclick=()=>location.reload()});
- const ids=['pref-glow','pref-scale','pref-motion','pref-audio','pref-alert','pref-fullglow','pref-compact','pref-effects','pref-audio-on'];
- const defaults={'pref-glow':'65','pref-scale':'100','pref-motion':'55','pref-audio':'70','pref-alert':'45','pref-fullglow':true,'pref-compact':false,'pref-effects':true,'pref-audio-on':false};
- const apply=()=>{const get=id=>localStorage.getItem('outpost-'+id);document.body.classList.toggle('low-glow',get('pref-fullglow')==='false'||get('pref-glow')==='0');document.body.classList.toggle('compact-ui',get('pref-compact')==='true');document.body.classList.toggle('no-motion',get('pref-effects')==='false'||get('pref-motion')==='0');document.documentElement.style.setProperty('--ui-scale',(Number(get('pref-scale')||100)/100).toFixed(2));};
- ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;const saved=localStorage.getItem('outpost-'+id);if(saved!==null){if(el.type==='checkbox')el.checked=saved==='true';else el.value=saved}else{if(el.type==='checkbox')el.checked=defaults[id];else el.value=defaults[id]}el.addEventListener('input',()=>{localStorage.setItem('outpost-'+id,el.type==='checkbox'?String(el.checked):el.value);apply()})});
- document.getElementById('settings-reset-visual')?.addEventListener('click',()=>{ids.forEach(id=>localStorage.removeItem('outpost-'+id));ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;el.type==='checkbox'?el.checked=defaults[id]:el.value=defaults[id]});apply()});apply();
-})();
-
 /* Reference-screen routing: module tiles open their existing functional sections. */
 (()=> {
  const home=document.getElementById('landing'),shell=document.querySelector('.app-shell');
- const enter=(target)=>{home.style.display='none';shell.classList.remove('app-hidden');if(typeof view==='function')view(target);};
+ const enter=(target)=>{home.hidden=false;home.style.display='none';shell.classList.remove('app-hidden');if(typeof view==='function')view(target);};
  document.getElementById('landing-start').onclick=()=>enter('overview');
  document.getElementById('landing-settings').onclick=()=>enter('settings');
- document.getElementById('landing-leave').onclick=()=>{home.innerHTML='';home.style.display='none';};
- document.getElementById('dashboard-back').onclick=()=>{shell.classList.add('app-hidden');home.style.display='grid';};
+ document.getElementById('landing-leave').onclick=()=>{home.innerHTML='<div class="home-menu"><h2>SESSION CLOSED</h2><p>Your local OUTPOST data remains on this device.</p><button id="landing-return">RETURN</button></div>';home.hidden=false;home.style.display='grid';document.getElementById('landing-return').onclick=()=>location.reload();};
+ document.getElementById('dashboard-back').onclick=()=>{shell.classList.add('app-hidden');home.hidden=false;home.style.display='grid';};
  document.getElementById('settings-back').onclick=()=>view('overview');
  document.querySelectorAll('[data-module-go]').forEach(el=>el.addEventListener('click',()=>view(el.dataset.moduleGo)));
  document.getElementById('reference-search').addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.trim();if(q){view('knowledge');const box=document.querySelector('#knowledge input[type=search],#knowledge input');if(box){box.value=q;box.dispatchEvent(new Event('input',{bubbles:true}));}}}});
