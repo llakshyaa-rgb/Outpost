@@ -117,3 +117,20 @@
 .law-source:active{background:#283329}
 @media(max-width:760px){.knowledge-domain-grid,.law-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.knowledge-domain-grid,.law-source-grid{grid-template-columns:1fr}.knowledge-domain,.law-source{padding:11px}}
+
+/* Full-document reader for local Knowledge Search */
+.search-result-item{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.search-result-copy{min-width:0;flex:1}.search-open-document{flex:0 0 auto;white-space:nowrap}
+.document-reader{margin-top:16px;scroll-margin-top:16px}
+.document-reader-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;border-bottom:1px solid var(--line,rgba(255,255,255,.12));padding-bottom:14px}
+.document-reader-head h3{margin:5px 0}.document-reader-head .muted{overflow-wrap:anywhere;font-size:.82rem}
+.document-reader-actions{display:flex;justify-content:flex-end;padding:12px 0}
+.document-markdown{max-width:900px;margin:0 auto;padding:8px 2px 24px;line-height:1.75;overflow-wrap:anywhere}
+.document-markdown h1,.document-markdown h2,.document-markdown h3,.document-markdown h4{line-height:1.3;margin:1.5em 0 .55em}
+.document-markdown h1{font-size:1.65rem}.document-markdown h2{font-size:1.35rem}.document-markdown h3{font-size:1.12rem}
+.document-markdown p{margin:.7em 0;color:var(--text,inherit)}
+.document-markdown ul,.document-markdown ol{padding-left:1.5rem;margin:.6em 0}.document-markdown li{padding:.15em 0}
+.document-markdown code{font-family:monospace;background:rgba(127,127,127,.16);padding:.12em .32em;border-radius:4px}
+.document-markdown .document-code{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:auto;padding:14px;border-radius:10px;background:rgba(127,127,127,.12);font-size:.88rem}
+.document-markdown a{overflow-wrap:anywhere}.document-markdown hr{border:0;border-top:1px solid var(--line,rgba(255,255,255,.12));margin:1.5em 0}
+@media(max-width:600px){.search-result-item{display:block}.search-open-document{margin-top:10px;width:100%}.document-reader-head{display:block}.document-reader-head button{margin-top:8px;width:100%}.document-markdown{font-size:.96rem}}
